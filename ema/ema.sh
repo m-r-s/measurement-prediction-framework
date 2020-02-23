@@ -28,7 +28,7 @@ MSTIMULUSPATH="${DIR}/stimulus/"
 
 # Simulated impairments by playback of a threshold simulating noise
 IMPAIRMENTS=('none')
-IMPAIRMENTSTRINGS=('No thresholdsimulating noise')
+IMPAIRMENTSTRINGS=('No simulated impairment')
 
 # Define measurement blocks <measurement>,<processing>-<measurement-parameters>
 MEASUREMENTS=()
@@ -40,10 +40,10 @@ MEASUREMENTS[1]='sweep,none-250,l sweep,none-500,l sweep,none-1000,l sweep,none-
 # 3. TONE IN NOISE
 MEASUREMENTS[2]='sweepinnoise,none-500,l sweepinnoise,none-1000,l sweepinnoise,none-2000,l sweepinnoise,none-4000,l \
                  sweepinnoise,none-500,r sweepinnoise,none-1000,r sweepinnoise,none-2000,r sweepinnoise,none-4000,r'
-# 4. MATRIX UNAIDED
-MEASUREMENTS[3]='matrix,none-default,quiet,65,b matrix,none-default,whitenoise,65,b \
-                 matrix,openMHA-default,quiet,65,b matrix,openMHA-default,whitenoise,65,b'
-# 4. MATRIX AIDED
+
+# 4. MATRIX
+MEASUREMENTS[3]='matrix,none-default,quiet,0,b matrix,none-default,whitenoise,65,b matrix,openMHA-default,quiet,65,b matrix,openMHA-default,whitenoise,65,b'
+
 MEASUREMENTSTRINGS=('Training' 'Tone detection' 'Tone detection in noise' 'Matrix sentence tests')
 MEASUREMENTSEQUENCES=('unchanged' 'random' 'random' 'random')
 
@@ -324,7 +324,7 @@ while true; do
       I=$[${TASK:0:1}-1]
       J=$[${TASK:1:1}-1]
       BLOCK="BLOCK${TASK}"
-      IMPAIRMENT=${IMPAIRMENTS[$I]}
+      IMPAIRMENT="${IMPAIRMENTS[$I]}"
       case "${MEASUREMENTSEQUENCES[$J]}" in
         ordered)
           MEASUREMENT=($(echo "${MEASUREMENTS[$J]}" | tr " " "\n" | sort | tr "\n" " "))
@@ -333,11 +333,11 @@ while true; do
           MEASUREMENT=($(echo "${MEASUREMENTS[$J]}" | tr " " "\n" | sort -R | tr "\n" " "))
         ;;
         *)
-          MEASUREMENT=(${MEASUREMENTS[$K]})
+          MEASUREMENT=(${MEASUREMENTS[$J]})
         ;;
       esac
       for ((K=0;$K<${#MEASUREMENT[@]};K++)); do
-        TARGETFILE="${WORKDIR}/${BLOCK}-${IMPAIRMENT}-${MEASUREMENT[$L]}.m"
+        TARGETFILE="${WORKDIR}/${BLOCK}-${IMPAIRMENT}-${MEASUREMENT[$K]}.m"
         if [ -e "${TARGETFILE}" ]; then
           echo "Measurement '${MEASUREMENT[$K]}' with simulated impairment '${IMPAIRMENT}' already completed... skip"
         else
