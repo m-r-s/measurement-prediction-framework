@@ -34,7 +34,7 @@ The measurements are implemented in GNU/Octave scripts (`ema/mfiles/measure_*`).
 Results are documented in `ema/data`.
 
 The EMA are part of this repository and require, at least, the following software packages to work (maybe I forgot some):
-> sudo apt install build-essential gawk octave octave-signal liboctave-dev jackd2
+> sudo apt install build-essential gawk octave octave-signal liboctave-dev jackd2 libjack-jackd2-dev
 
 Some example measurements conditions are defined in `ema/ema.sh`.
 Also, you need to set your audio device name there.
