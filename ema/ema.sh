@@ -10,7 +10,7 @@ DIR=$(cd "$( dirname "$0" )" && pwd)
 SCN=$(basename "$0")
 
 # Set the version string
-export EMA_VERSION=2.2.0
+export EMA_VERSION=3.0.0
 
 # Audio setup configuration
 SOUNDDEVICE=USB
@@ -26,25 +26,25 @@ OUTPUTS=('system:playback_1' 'system:playback_2') # left right
 MADDPATH="${DIR}/mfiles/"
 MSTIMULUSPATH="${DIR}/stimulus/"
 
-# 1) Simulated impairments
+# Simulated impairments by playback of a threshold simulating noise
 IMPAIRMENTS=('none')
 IMPAIRMENTSTRINGS=('No thresholdsimulating noise')
 
-# 2) Signal processing
-PROCESSINGS=('none' 'openMHA9_unaided')
-PROCESSINGSTRINGS=('unaided' 'openMHA_unaided')
-
-# 3) Define measurement blocks
+# Define measurement blocks <measurement>,<processing>-<measurement-parameters>
 MEASUREMENTS=()
 # 1. TRAINING
-MEASUREMENTS[0]='sweep-1000,b,train matrix-quiet,65,b,train'
+MEASUREMENTS[0]='sweep,none-1000,b,train matrix,none-default,quiet,65,b,train'
 # 2. SWEEPS
-MEASUREMENTS[1]='sweep-250,l sweep-500,l sweep-1000,l sweep-2000,l sweep-4000,l sweep-6000,l sweep-250,r sweep-500,r sweep-1000,r sweep-2000,r sweep-4000,r sweep-6000,r'
+MEASUREMENTS[1]='sweep,none-250,l sweep,none-500,l sweep,none-1000,l sweep,none-2000,l sweep,none-4000,l sweep,none-6000,l \
+                 sweep,none-250,r sweep,none-500,r sweep,none-1000,r sweep,none-2000,r sweep,none-4000,r sweep,none-6000,r'
 # 3. TONE IN NOISE
-MEASUREMENTS[2]='sweepinnoise-500,l sweepinnoise-1000,l sweepinnoise-2000,l sweepinnoise-4000,l sweepinnoise-500,r sweepinnoise-1000,r sweepinnoise-2000,r sweepinnoise-4000,r'
-# 4. MATRIX2
-MEASUREMENTS[3]='matrix-quiet,65,b matrix-whitenoise,65,b'
-MEASUREMENTSTRINGS=('Training' 'Tone-in-quiet' 'Tone-in-noise' 'Matrix')
+MEASUREMENTS[2]='sweepinnoise,none-500,l sweepinnoise,none-1000,l sweepinnoise,none-2000,l sweepinnoise,none-4000,l \
+                 sweepinnoise,none-500,r sweepinnoise,none-1000,r sweepinnoise,none-2000,r sweepinnoise,none-4000,r'
+# 4. MATRIX UNAIDED
+MEASUREMENTS[3]='matrix,none-default,quiet,65,b matrix,none-default,whitenoise,65,b \
+                 matrix,openMHA-default,quiet,65,b matrix,openMHA-default,whitenoise,65,b'
+# 4. MATRIX AIDED
+MEASUREMENTSTRINGS=('Training' 'Tone detection' 'Tone detection in noise' 'Matrix sentence tests')
 MEASUREMENTSEQUENCES=('unchanged' 'random' 'random' 'random')
 
 # Say hello
@@ -74,9 +74,10 @@ finish() {
 start_measurement() {
   local TARGETFILE
   local IMPAIRMENT
-  local PROCESSING
-  local MEASUREMENTPARAMETERS
+  local CONDITIONCODE
+  local CONDITION
   local MEASUREMENT
+  local PROCESSING
   local PARAMETERS
   local IMPAIRMENTDIR
   local IMPAIRMENTPID
@@ -86,10 +87,11 @@ start_measurement() {
 
   TARGETFILE="$1"
   IMPAIRMENT="$2"
-  PROCESSING="$3"
-  MEASUREMENTPARAMETERS=($(echo "${4}" | tr '-' ' '))
-  MEASUREMENT="${MEASUREMENTPARAMETERS[0]}"
-  PARAMETERS="${MEASUREMENTPARAMETERS[1]}"
+  CONDITIONCODE=($(echo "${3}" | tr '-' ' '))
+  CONDITION=($(echo "${CONDITIONCODE[0]}" | tr ',' ' '))
+  MEASUREMENT="${CONDITION[0]}"
+  PROCESSING="${CONDITION[1]}"
+  PARAMETERS="${CONDITIONCODE[1]}"
 
   # Start the impairment simulation
   if [ "$IMPAIRMENT" == "none" ]; then
@@ -318,37 +320,35 @@ TASK="menu"
 while true; do
   CONFIG="EMA:${EMA_VERSION},ID:${ID},SOUNDDEVICE:${SOUNDDEVICE},SOUNDSTREAM:${SOUNDSTREAM},SOUNDCHANNELS:${SOUNDCHANNELS}"
   case "${TASK}" in
-    [0-9][0-9][0-9])
+    [0-9][0-9])
       I=$[${TASK:0:1}-1]
       J=$[${TASK:1:1}-1]
-      K=$[${TASK:2:1}-1]
       BLOCK="BLOCK${TASK}"
       IMPAIRMENT=${IMPAIRMENTS[$I]}
-      PROCESSING=${PROCESSINGS[$J]}
-      case "${MEASUREMENTSEQUENCES[$K]}" in
+      case "${MEASUREMENTSEQUENCES[$J]}" in
         ordered)
-          MEASUREMENT=($(echo "${MEASUREMENTS[$K]}" | tr " " "\n" | sort | tr "\n" " "))
+          MEASUREMENT=($(echo "${MEASUREMENTS[$J]}" | tr " " "\n" | sort | tr "\n" " "))
         ;;
         random)
-          MEASUREMENT=($(echo "${MEASUREMENTS[$K]}" | tr " " "\n" | sort -R | tr "\n" " "))
+          MEASUREMENT=($(echo "${MEASUREMENTS[$J]}" | tr " " "\n" | sort -R | tr "\n" " "))
         ;;
         *)
           MEASUREMENT=(${MEASUREMENTS[$K]})
         ;;
       esac
-      for ((L=0;$L<${#MEASUREMENT[@]};L++)); do
-        TARGETFILE="${WORKDIR}/${BLOCK}-${IMPAIRMENT}-${PROCESSING}-${MEASUREMENT[$L]}.m"
+      for ((K=0;$K<${#MEASUREMENT[@]};K++)); do
+        TARGETFILE="${WORKDIR}/${BLOCK}-${IMPAIRMENT}-${MEASUREMENT[$L]}.m"
         if [ -e "${TARGETFILE}" ]; then
-          echo "Measurement '${MEASUREMENT[$L]}' with impairment '${IMPAIRMENT}' and processing '${PROCESSING}' already completed... skip"
+          echo "Measurement '${MEASUREMENT[$K]}' with simulated impairment '${IMPAIRMENT}' already completed... skip"
         else
-          echo -e "\nStart measurement '${MEASUREMENT[$L]}' with impairment '${IMPAIRMENT}' and processing '${PROCESSING}'"
+          echo -e "\nStart measurement '${MEASUREMENT[$K]}' with simulated impairment '${IMPAIRMENT}'"
           CONTINUE='!'
           while ! [[ "${CONTINUE}" =~ ^(y|Y|n|N|)$ ]]; do
             echo -n "Continue (Y/n): "
             read CONTINUE
           done
           [[ "${CONTINUE}" =~ ^(n|N)$ ]] && break
-          start_measurement "${TARGETFILE}" "${IMPAIRMENT}" "${PROCESSING}" "${MEASUREMENT[$L]}" || error "measurement failed"
+          start_measurement "${TARGETFILE}" "${IMPAIRMENT}" "${MEASUREMENT[$K]}" || error "measurement failed"
         fi
       done
       TASK=menu
@@ -402,16 +402,11 @@ while true; do
         IMPAIRMENT=${IMPAIRMENTS[$I]}
         echo "  ====   $[$I+1]. ${IMPAIRMENTSTRINGS[$I]} (${IMPAIRMENTS[$I]})"
         echo ""
-        for ((J=0;$J<${#PROCESSINGS[@]};J++)); do
-          PROCESSING=${PROCESSINGS[$J]}
-          echo "  ----   $[$J+1]. ${PROCESSINGSTRINGS[$J]} (${PROCESSINGS[$J]})"
-          for ((K=0;$K<${#MEASUREMENTS[@]};K++)); do
-            MEASUREMENT=(${MEASUREMENTS[$K]})
-            STATUS=$(find "$WORKDIR" -type f -iname "BLOCK$[$I+1]$[$J+1]$[$K+1]-*.m" 2> /dev/null | \
-      wc -l)"/${#MEASUREMENT[@]}"
-            echo "  $[$I+1]$[$J+1]$[$K+1])   ${STATUS} ${MEASUREMENTSTRINGS[$K]}"
-          done
-          echo ""
+        for ((J=0;$J<${#MEASUREMENTS[@]};J++)); do
+          MEASUREMENT=(${MEASUREMENTS[$J]})
+          STATUS=$(find "$WORKDIR" -type f -iname "BLOCK$[$I+1]$[$J+1]-*.m" 2> /dev/null | \
+    wc -l)"/${#MEASUREMENT[@]}"
+          echo "  $[$I+1]$[$J+1])   ${STATUS} ${MEASUREMENTSTRINGS[$J]}"
         done
         echo ""
       done

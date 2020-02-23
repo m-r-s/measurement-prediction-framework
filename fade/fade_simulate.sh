@@ -5,7 +5,7 @@ DIR=$(cd "$( dirname "$0" )" && pwd)
 SCN=$(basename "$0")
 
 if [ $# -lt 7 ]; then
-  echo "Usage: $0 PREFIX MEASUREMENTSTRING PROCESSING IMPAIRMENT SIMRANGE SIMMODE FEATURES [FEATUREOPTION1] [FEATUREOPTION2] ..."
+  echo "Usage: $0 PREFIX MEASUREMENTSTRING IMPAIRMENT SIMRANGE SIMMODE FEATURES [FEATUREOPTION1] [FEATUREOPTION2] ..."
   echo ""
   exit 1
 fi
@@ -18,12 +18,11 @@ error() {
 # Get arguments
 PREFIX="$1"
 MEASUREMENTSTRING="$2"
-PROCESSING="$3"
-IMPAIRMENT="$4"
-SIMRANGE="$5"
-SIMMODE="$6"
-FEATURES="$7"
-shift 7
+IMPAIRMENT="$3"
+SIMRANGE="$4"
+SIMMODE="$5"
+FEATURES="$6"
+shift 6
 FEATUREOPTIONS=("$@")
 
 case "$SIMMODE" in
@@ -46,16 +45,20 @@ case "$SIMMODE" in
   ;;
 esac
 
-PROJECTDIR="${PREFIX}M${MEASUREMENTSTRING}-P${PROCESSING}-I${IMPAIRMENT}-S${SIMMODE}-F${FEATURES}"
+PROJECTDIR="${PREFIX}M${MEASUREMENTSTRING}-I${IMPAIRMENT}-S${SIMMODE}-F${FEATURES}"
 
 if [ -e "${PROJECTDIR}" ]; then
   echo "project directory already exists '${PROJECTDIR}'"
   exit 0
 fi
 
-MEASUREMENTPARAMETERS=($(echo "$MEASUREMENTSTRING" | tr '-' ' '))
-MEASUREMENT="${MEASUREMENTPARAMETERS[0]}"
-PARAMETERS=($(echo "${MEASUREMENTPARAMETERS[1]}" | tr ',' ' '))
+# Decode condition code
+CONDITIONCODE=($(echo "$MEASUREMENTSTRING" | tr '-' ' '))
+CONDITION=($(echo "${CONDITIONCODE[0]}" | tr ',' ' '))
+PARAMETERS=($(echo "${CONDITIONCODE[1]}" | tr ',' ' '))
+MEASUREMENT="${CONDITION[0]}"
+PROCESSING="${CONDITION[1]}"
+
 THRESHOLDNOISE="${DIR}/impairment/${IMPAIRMENT}/thresholdsimulatingnoise.wav"
 PROCESSINGDIR="${DIR}/processing/${PROCESSING}/"
 FEATURESDIR="${DIR}/features/${FEATURESMODE}/"
@@ -64,11 +67,11 @@ FEATURESDIR="${DIR}/features/${FEATURESMODE}/"
 case "$MEASUREMENT" in
   sweep)
     QSIM_THRESHOLD=0.875
-    fade "$PROJECTDIR" corpus-stimulus "$[${TRAININGSAMPELSPERMODEL}*1]" "$[${RECOGNITIONDECISIONS}/2]"
+    fade "$PROJECTDIR" corpus-stimulus "$[${TRAININGSAMPELSPERMODEL}*1]" "$[${RECOGNITIONDECISIONS}/2]" || error "creating project"
     FREQUENCY=${PARAMETERS[0]}
     EAR=${PARAMETERS[1]}
-    cp -L "${DIR}/stimulus/"* "${PROJECTDIR}/config/corpus/matlab" 
-    cp -L "${DIR}/stimulus/control_"* "${PROJECTDIR}/config/figures/matlab"
+    cp -L "${DIR}/stimulus/"* "${PROJECTDIR}/config/corpus/matlab" || error "copying stimulus generation files"
+    cp -L "${DIR}/stimulus/control_"* "${PROJECTDIR}/config/figures/matlab" || error "copying stimulus control files"
     echo "function generate(target_dir, samples, seed, verbose)
           mkdir(target_dir);
           classes = {0 1};
@@ -81,11 +84,11 @@ case "$MEASUREMENT" in
   ;;
   sweepinnoise)
     QSIM_THRESHOLD=0.875
-    fade "$PROJECTDIR" corpus-stimulus "$[${TRAININGSAMPELSPERMODEL}*1]" "$[${RECOGNITIONDECISIONS}/2]"
+    fade "$PROJECTDIR" corpus-stimulus "$[${TRAININGSAMPELSPERMODEL}*1]" "$[${RECOGNITIONDECISIONS}/2]" || error "creating project"
     FREQUENCY=${PARAMETERS[0]}
     EAR=${PARAMETERS[1]}
-    cp -L "${DIR}/stimulus/"* "${PROJECTDIR}/config/corpus/matlab"
-    cp -L "${DIR}/stimulus/control_"* "${PROJECTDIR}/config/figures/matlab"
+    cp -L "${DIR}/stimulus/"* "${PROJECTDIR}/config/corpus/matlab" || error "copying stimulus generation files"
+    cp -L "${DIR}/stimulus/control_"* "${PROJECTDIR}/config/figures/matlab" || error "copying stimulus control files"
     echo "function generate(target_dir, samples, seed, verbose)
           mkdir(target_dir);
           classes = {0 1};
@@ -98,12 +101,13 @@ case "$MEASUREMENT" in
   ;;
   matrix)
     QSIM_THRESHOLD=0.5
-    NOISEMASKER="${PARAMETERS[0]}"
-    NOISELEVEL="${PARAMETERS[1]}"
-    EAR="${PARAMETERS[2]}"
-    fade "$PROJECTDIR" corpus-matrix "$[${TRAININGSAMPELSPERMODEL}*10]" "$[${RECOGNITIONDECISIONS}/5]"
-    cp -L "${DIR}/matrix/speech/"*".wav" "${PROJECTDIR}/source/speech/"
-    cp -L "${DIR}/matrix/maskers/${NOISEMASKER}.wav" "${PROJECTDIR}/source/noise/"
+    TALKER="${PARAMETERS[0]}"
+    NOISEMASKER="${PARAMETERS[1]}"
+    NOISELEVEL="${PARAMETERS[2]}"
+    EAR="${PARAMETERS[3]}"
+    fade "$PROJECTDIR" corpus-matrix "$[${TRAININGSAMPELSPERMODEL}*10]" "$[${RECOGNITIONDECISIONS}/5]" || error "creating project"
+    cp -L "${DIR}/matrix/speech/${TALKER}/"*".wav" "${PROJECTDIR}/source/speech/" || error "copying speech files"
+    cp -L "${DIR}/matrix/maskers/${NOISEMASKER}.wav" "${PROJECTDIR}/source/noise/" || error "copying masker file"
     (cd "${PROJECTDIR}/source" && find -iname '*.wav') > "${PROJECTDIR}/config/sourcelist.txt"
     # Adjust level and resample to 48kHz
     echo "Adjust levels, resample, and select channels"
@@ -152,9 +156,15 @@ fi
 # Apply threshold simulating noise
 if [ ! "$IMPAIRMENT" == "none" ]; then
   echo "Apply threshold simulating noise"
-  (cd "${PROJECTDIR}/processing" && find -iname '*.wav') > "${PROJECTDIR}/config/processinglist.txt" || error "finding processed files"
-  octave-cli --quiet --eval "progress = '0123456789#';
-    filelist = strsplit(fileread('${PROJECTDIR}/config/processinglist.txt'),'\n');
+  if [ -e "${PROJECTDIR}/processing" ]; then
+      (cd "${PROJECTDIR}/processing" && find "$PWD" -iname '*.wav') > "${PROJECTDIR}/config/impairmentlist.txt" || error "finding processed files"
+  elif [ -e "${PROJECTDIR}/corpus" ]; then
+      (cd "${PROJECTDIR}/corpus" && find "$PWD" -iname '*.wav') > "${PROJECTDIR}/config/impairmentlist.txt" || error "finding corpus files"
+  else
+      error "finding files for applying threshold simulating noise"
+  fi
+  octave-cli --quiet --eval "
+    filelist = strsplit(fileread('${PROJECTDIR}/config/impairmentlist.txt'),'\n');
     numfiles = length(filelist);
     [thresholdnoise, fs]=audioread('${THRESHOLDNOISE}');
     if fs ~= 48000
@@ -162,7 +172,7 @@ if [ ! "$IMPAIRMENT" == "none" ]; then
     end
     for i=1:numfiles
       if ~isempty(filelist{i})
-        filename=['${PROJECTDIR}/processing/' filelist{i}];
+        filename=filelist{i};
         [signal, fs]=audioread(filename);
         if fs ~= 48000
           signal = resample(signal, 48000, fs);
@@ -170,7 +180,7 @@ if [ ! "$IMPAIRMENT" == "none" ]; then
         thresholdoffset=floor(rand(1)*(size(thresholdnoise,1)-size(signal,1)-1));
         signal = signal + thresholdnoise(1+thresholdoffset:size(signal,1)+thresholdoffset,:);
         audiowrite(filename, signal, 48000, 'BitsPerSample', 32);
-        printf('%s',progress(1+floor(10.*i./numfiles)));
+        printf('.');
       end
     end
     printf('\nfinished\n');" || error "applying threshold simulating noise"

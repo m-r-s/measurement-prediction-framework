@@ -26,7 +26,7 @@ function measure_matrix(targetfile, parameters, device)
 
   % Get parameter variables from string
   parameters_parts = strsplit(parameters, ',');
-  [masker, level, ear] = parameters_parts{:};
+  [talker, masker, level, ear] = parameters_parts{:};
   level = str2double(level);
   
   % Interpret start value
@@ -39,7 +39,7 @@ function measure_matrix(targetfile, parameters, device)
       startvalue = 0;
   end
 
-  noisefile = ['matrix/maskers', filesep, masker, '.wav'];
+  noisefile = ['matrix' filesep 'maskers', filesep, masker, '.wav'];
 
   if ~exist(noisefile, 'file')
     printf('Error: noisefile not found!\n');
@@ -83,7 +83,7 @@ function measure_matrix(targetfile, parameters, device)
   % Load speech recordings
   speech = cell(size(list_tmp));
   for i=1:numel(list_tmp)
-    speechfile = ['matrix/speech', filesep, list_tmp{i}, '.wav'];
+    speechfile = ['matrix' filesep 'speech' filesep talker filesep list_tmp{i} '.wav'];
     if ~exist(speechfile,'file')
       printf('Error: speechfile not found!\n');
       error('speechfile not found');
