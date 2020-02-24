@@ -30,16 +30,16 @@ MSTIMULUSPATH="${DIR}/stimulus/"
 IMPAIRMENTS=('none')
 IMPAIRMENTSTRINGS=('No simulated impairment')
 
-# Define measurement blocks <measurement>,<processing>-<measurement-parameters>
+# Define measurement blocks <measurement>,<processing>[,individual]-<measurement-parameters>
 MEASUREMENTS=()
 # 1. TRAINING
 MEASUREMENTS[0]='sweep,none-1000,b,train matrix,none-default,quiet,65,b,train'
+
 # 2. SWEEPS
-MEASUREMENTS[1]='sweep,none-250,l sweep,none-500,l sweep,none-1000,l sweep,none-2000,l sweep,none-4000,l sweep,none-6000,l \
-                 sweep,none-250,r sweep,none-500,r sweep,none-1000,r sweep,none-2000,r sweep,none-4000,r sweep,none-6000,r'
+MEASUREMENTS[1]='sweep,none-250,l sweep,none-500,l sweep,none-1000,l sweep,none-2000,l sweep,none-4000,l sweep,none-6000,l sweep,none-250,r sweep,none-500,r sweep,none-1000,r sweep,none-2000,r sweep,none-4000,r sweep,none-6000,r'
+
 # 3. TONE IN NOISE
-MEASUREMENTS[2]='sweepinnoise,none-500,l sweepinnoise,none-1000,l sweepinnoise,none-2000,l sweepinnoise,none-4000,l \
-                 sweepinnoise,none-500,r sweepinnoise,none-1000,r sweepinnoise,none-2000,r sweepinnoise,none-4000,r'
+MEASUREMENTS[2]='sweepinnoise,none-500,l sweepinnoise,none-1000,l sweepinnoise,none-2000,l sweepinnoise,none-4000,l sweepinnoise,none-500,r sweepinnoise,none-1000,r sweepinnoise,none-2000,r sweepinnoise,none-4000,r'
 
 # 4. MATRIX
 MEASUREMENTS[3]='matrix,none-default,quiet,0,b matrix,none-default,whitenoise,65,b matrix,openMHA-default,quiet,65,b matrix,openMHA-default,whitenoise,65,b'
@@ -78,6 +78,7 @@ start_measurement() {
   local CONDITION
   local MEASUREMENT
   local PROCESSING
+  local INDIVIDUAL
   local PARAMETERS
   local IMPAIRMENTDIR
   local IMPAIRMENTPID
@@ -91,6 +92,7 @@ start_measurement() {
   CONDITION=($(echo "${CONDITIONCODE[0]}" | tr ',' ' '))
   MEASUREMENT="${CONDITION[0]}"
   PROCESSING="${CONDITION[1]}"
+  INDIVIDUAL="${CONDITION[2]}"
   PARAMETERS="${CONDITIONCODE[1]}"
 
   # Start the impairment simulation
@@ -110,7 +112,17 @@ start_measurement() {
     PROCESSINGPID=""
     PROCESSINGDEVICE='loop'
   else
-    PROCESSINGDIR="${DIR}/processing/${PROCESSING}/"
+    case "$INDIVIDUAL" in
+      "id")
+        PROCESSINGDIR="${DIR}/data/${ID}/processing/${PROCESSING}/"
+      ;;
+      "")
+        PROCESSINGDIR="${DIR}/processing/${PROCESSING}/"
+      ;;
+      *)
+        error "individual processing missing!"
+      ;;
+    esac
     ${DIR}/start_processing.sh "${PROCESSINGDIR}" "" "" "loop:input_1" "loop:input_2" &>> "$PROCESSINGLOG" || error "start processing failed"
     PROCESSINGPID=$(cat "${PROCESSINGDIR}/processing.pid")
     PROCESSINGDEVICE=($(cat "${PROCESSINGDIR}/processing.ports" | tr ',' '\n' | cut -d: -f1 | sort -u))
