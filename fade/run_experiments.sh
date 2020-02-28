@@ -2,6 +2,10 @@
 
 DIR=$(cd "$( dirname "$0" )" && pwd)
 
+# Data folder prefix
+DATAPREF="${DIR}/simulation-data/"
+mkdir -p "$DATAPREF"
+
 IMPAIRMENTS=('none')
 MEASUREMENTS=('sweep,none-1000,l' 'sweep,openMHA-1000,l' 'sweepinnoise,none-1000,l' 'sweepinnoise,openMHA-1000,l' 'matrix,none-default,quiet,0,b' 'matrix,openMHA-default,quiet,0,b' 'matrix,none-default,whitenoise,65,b' 'matrix,openMHA-default,whitenoise,65,b')
 FEATURES='sgbfb'
@@ -18,24 +22,24 @@ for ((I=0;$I<${#IMPAIRMENTS[@]};I++)); do
     STARTTIME=$(date +%s)
 
     # First run to find approximate POI
-    PREFIX="prep1-"
-    SIMMODE="fast"
+    PREFIX="${DATAPREF}prep1-"
+    SIMMODE="coarse"
     SIMRANGE=""
-    PROJECTDIR="${PREFIX}M${MEASUREMENTS[$J]}-I${IMPAIRMENTS[$I]}-S${SIMMODE}-F${FEATURES}"
+    PROJECTDIR="${PREFIX}M${MEASUREMENTS[$J]}-I${IMPAIRMENTS[$I]}-F${FEATURES}"
     case "$MEASUREMENT" in
       sweep)
-        SIMRANGE="-10:10:110"
+        SIMRANGE="-10:10:120"
       ;;
       sweepinnoise)
-        SIMRANGE="-10:10:110"
+        SIMRANGE="-10:10:120"
       ;;
       matrix)
-        SIMRANGE="[0:10:100]-${PARAMETERS[2]}"
+        SIMRANGE="[0:10:120]-${PARAMETERS[2]}"
       ;;
     esac
     # Run simulation
-    echo "START FAST SIMULATION (1) on '${PROJECTDIR}'"
-    "${DIR}/fade_simulate.sh" "$PREFIX" "${MEASUREMENTS[$J]}" "${IMPAIRMENTS[$I]}" "$SIMRANGE" "$SIMMODE" "$FEATURES" "$FEATUREOPTION"
+    echo "START ${SIMMODE} SIMULATION on '${PROJECTDIR}'"
+    "${DIR}/fade_simulate.sh" "$PROJECTDIR" "${MEASUREMENTS[$J]}" "${IMPAIRMENTS[$I]}" "$SIMRANGE" "$SIMMODE" "$FEATURES" "$FEATUREOPTION"
     # Get POI
     POI=""
     [ -e "${PROJECTDIR}/poi" ] && POI=$(cat "${PROJECTDIR}/poi")
@@ -51,10 +55,10 @@ for ((I=0;$I<${#IMPAIRMENTS[@]};I++)); do
     echo "SIMULATION TIME: $[$(date +%s)-${STARTTIME}] seconds elapsed"
 
     # Second run to find better estimate of POI
-    PREFIX="prep2-"
-    SIMMODE="fast"
+    PREFIX="${DATAPREF}prep2-"
+    SIMMODE="medium"
     SIMRANGE=""
-    PROJECTDIR="${PREFIX}M${MEASUREMENTS[$J]}-I${IMPAIRMENTS[$I]}-S${SIMMODE}-F${FEATURES}"
+    PROJECTDIR="${PREFIX}M${MEASUREMENTS[$J]}-I${IMPAIRMENTS[$I]}-F${FEATURES}"
     case "$MEASUREMENT" in
       sweep)
         SIMRANGE="[-15:5:15]+${POI}"
@@ -67,8 +71,8 @@ for ((I=0;$I<${#IMPAIRMENTS[@]};I++)); do
       ;;
     esac
     # Run simulation
-    echo "START FAST SIMULATION (2) on '${PROJECTDIR}'"
-    "${DIR}/fade_simulate.sh" "$PREFIX" "${MEASUREMENTS[$J]}" "${IMPAIRMENTS[$I]}" "$SIMRANGE" "$SIMMODE" "$FEATURES" "$FEATUREOPTION"
+    echo "START ${SIMMODE} SIMULATION on '${PROJECTDIR}'"
+    "${DIR}/fade_simulate.sh" "$PROJECTDIR" "${MEASUREMENTS[$J]}" "${IMPAIRMENTS[$I]}" "$SIMRANGE" "$SIMMODE" "$FEATURES" "$FEATUREOPTION"
     # Get POI
     POI=""
     [ -e "${PROJECTDIR}/poi" ] && POI=$(cat "${PROJECTDIR}/poi")
@@ -84,10 +88,10 @@ for ((I=0;$I<${#IMPAIRMENTS[@]};I++)); do
     echo "SIMULATION TIME: $[$(date +%s)-${STARTTIME}] seconds elapsed"
 
     # Run actual simulation
-    PREFIX="run1-"
-    SIMMODE="full"
+    PREFIX="${DATAPREF}run-"
+    SIMMODE="precise"
     SIMRANGE=""
-    PROJECTDIR="${PREFIX}M${MEASUREMENTS[$J]}-I${IMPAIRMENTS[$I]}-S${SIMMODE}-F${FEATURES}"
+    PROJECTDIR="${PREFIX}M${MEASUREMENTS[$J]}-I${IMPAIRMENTS[$I]}-F${FEATURES}"
     case "$MEASUREMENT" in
       sweep)
         SIMRANGE="[-15:3:6]+${POI}"
@@ -100,8 +104,8 @@ for ((I=0;$I<${#IMPAIRMENTS[@]};I++)); do
       ;;
     esac
     # Run simulation
-    echo "START FULL SIMULATION on '${PROJECTDIR}'"
-    "${DIR}/fade_simulate.sh" "$PREFIX" "${MEASUREMENTS[$J]}" "${IMPAIRMENTS[$I]}" "$SIMRANGE" "$SIMMODE" "$FEATURES" "$FEATUREOPTION"
+    echo "START ${SIMMODE} SIMULATION on '${PROJECTDIR}'"
+    "${DIR}/fade_simulate.sh" "$PROJECTDIR" "${MEASUREMENTS[$J]}" "${IMPAIRMENTS[$I]}" "$SIMRANGE" "$SIMMODE" "$FEATURES" "$FEATUREOPTION"
     # Show result
     echo "SIMULATION FINISHED"
     cat "${PROJECTDIR}/figures/table.txt"
@@ -115,4 +119,4 @@ for ((I=0;$I<${#IMPAIRMENTS[@]};I++)); do
   done
 done
 
-"${DIR}/collect_results.sh" "$PWD" | tee results.txt
+collect_tables.sh "$DATAPREF" | tee results.txt

@@ -5,7 +5,7 @@ DIR=$(cd "$( dirname "$0" )" && pwd)
 SCN=$(basename "$0")
 
 if [ $# -lt 7 ]; then
-  echo "Usage: $0 PREFIX MEASUREMENTSTRING IMPAIRMENT SIMRANGE SIMMODE FEATURES [FEATUREOPTION1] [FEATUREOPTION2] ..."
+  echo "Usage: $0 PROJECTDIR MEASUREMENTSTRING IMPAIRMENT SIMRANGE SIMMODE FEATURES [FEATUREOPTION1] [FEATUREOPTION2] ..."
   echo ""
   exit 1
 fi
@@ -16,7 +16,7 @@ error() {
 }
 
 # Get arguments
-PREFIX="$1"
+PROJECTDIR="$1"
 MEASUREMENTSTRING="$2"
 IMPAIRMENT="$3"
 SIMRANGE="$4"
@@ -26,7 +26,7 @@ shift 6
 FEATUREOPTIONS=("$@")
 
 case "$SIMMODE" in
-  fast)
+  coarse)
     TRAININGSAMPELSPERMODEL=12
     RECOGNITIONDECISIONS=100
     # [STATES] [SILENCE_STATES] [MIXTURES] [ITERATIONS] [UPDATES] [PRUNINGS] [BINARY]
@@ -34,7 +34,15 @@ case "$SIMMODE" in
     RECOGNITIONOPTIONS="0 50 1"
     FEATURESMODE="${FEATURES}-reduced"
   ;;
-  full)
+  medium)
+    TRAININGSAMPELSPERMODEL=48
+    RECOGNITIONDECISIONS=300
+    # [STATES] [SILENCE_STATES] [MIXTURES] [ITERATIONS] [UPDATES] [PRUNINGS] [BINARY]
+    TRAININGOPTIONS="6 4 1 4 mvwt 0 1"
+    RECOGNITIONOPTIONS="0 100 1"
+    FEATURESMODE="${FEATURES}-reduced"
+  ;;
+  precise)
     TRAININGSAMPELSPERMODEL=96
     RECOGNITIONDECISIONS=600
     # [STATES] [SILENCE_STATES] [MIXTURES] [ITERATIONS] [UPDATES] [PRUNINGS] [BINARY]
@@ -44,8 +52,6 @@ case "$SIMMODE" in
     FEATURESMODE="${FEATURES}-full"
   ;;
 esac
-
-PROJECTDIR="${PREFIX}M${MEASUREMENTSTRING}-I${IMPAIRMENT}-S${SIMMODE}-F${FEATURES}"
 
 if [ -e "${PROJECTDIR}" ]; then
   echo "project directory already exists '${PROJECTDIR}'"
@@ -58,9 +64,14 @@ CONDITION=($(echo "${CONDITIONCODE[0]}" | tr ',' ' '))
 PARAMETERS=($(echo "${CONDITIONCODE[1]}" | tr ',' ' '))
 MEASUREMENT="${CONDITION[0]}"
 PROCESSING="${CONDITION[1]}"
+INDIVIDUAL="${CONDITION[2]}"
 
 THRESHOLDNOISE="${DIR}/impairment/${IMPAIRMENT}/thresholdsimulatingnoise.wav"
-PROCESSINGDIR="${DIR}/processing/${PROCESSING}/"
+if [ -n "${INDIVIDUAL}" ]; then
+  PROCESSINGDIR="${DIR}/data/${INDIVIDUAL}/processing/${PROCESSING}/"
+else
+  PROCESSINGDIR="${DIR}/processing/${PROCESSING}/"
+fi
 FEATURESDIR="${DIR}/features/${FEATURESMODE}/"
 
 # Set up experiment
@@ -150,6 +161,7 @@ fade "$PROJECTDIR" corpus-generate || error "generating corpus"
 # Perform signal processing
 if [ ! "$PROCESSING" == "none" ]; then
   echo "Apply signal processing"
+  [ -e "$PROCESSINGDIR" ] || error "processingdir not found"
   fade "$PROJECTDIR" processing "$PROCESSINGDIR" || error "processing"
 fi
 
@@ -190,7 +202,7 @@ fi
 fade "$PROJECTDIR" features "$FEATURESDIR" ${FEATUREOPTIONS[@]} || error "extracting features"
 
 # Format corpus (determine training/testing combinations)
-if [ "$SIMMODE" == "fast" ]; then
+if [ "$SIMMODE" == "coarse" ] || [ "$SIMMODE" == "medium" ] ; then
   case "$MEASUREMENT" in
     sweep)
       CONDITION_CODE='o o o'
@@ -216,7 +228,7 @@ fade "$PROJECTDIR" recognition $RECOGNITIONOPTIONS || error "recognition"
 fade "$PROJECTDIR" evaluation || error "evaluating results"
 
 case "$SIMMODE" in
-  fast)
+  coarse|medium)
   # Evaluate quick simulation to find point of interest
 
   POI=$(cat "${PROJECTDIR}/evaluation/summary" | \
@@ -231,7 +243,7 @@ case "$SIMMODE" in
   echo -e "\nPOI found: ${POI}\n"
   echo "${POI}" > "${PROJECTDIR}/poi"
   ;;
-  full)
+  precise)
     fade "$PROJECTDIR" figures
   ;;
 esac
