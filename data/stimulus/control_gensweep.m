@@ -1,12 +1,12 @@
 function varargout = control_gensweep(varargin)
 
+nul = {''};
 frequencies = {'250' '500' '1000' '2000' '4000' '6000'};
-ear = {'l' 'r' 'b'};
-explanation = {frequencies, ear};
+explanation = {nul, frequencies};
 
 title = 'Sweep detection';
 target = 0.875;
-dim = 1;
+dim = 2;
 xfactor = 1;
 yfactor = 1;
 xlabel = 'Sweep center frequency [Hz]';
@@ -16,20 +16,10 @@ xmarks = [];
 ymarks = [0];
 
 % Empicial results
-level = [11 11 11; ...
-          6  6  6; ...
-          5  5  5; ...
-         10 10 10; ...
-          9  9  9; ...
-         11 11 11];
+level = zeros(size(frequencies));
 
 % Empirical standard deviation
-deviation = [5 5 5; ...
-             5 5 5; ...
-             5 5 5; ...
-             5 5 5; ...
-             5 5 5; ...
-             5 5 5];
+deviation = ones(size(frequencies));
 
 varargout = cell(size(varargin));
 for i=1:length(varargin)

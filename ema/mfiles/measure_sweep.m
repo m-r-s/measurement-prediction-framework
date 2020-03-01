@@ -1,9 +1,4 @@
 function measure_sweep(targetfile, parameters, device)
-  % Find device ID for audio playback
-  playdev = audiodevinfo(0,sprintf('%s (JACK Audio Connection Kit)',device));
-  if isempty(playdev)
-    error(sprintf('Could not find playback device: %s\n',device));
-  end
 
   % SIAM configuration
   target = 0.75;
@@ -19,7 +14,7 @@ function measure_sweep(targetfile, parameters, device)
     target, minreversals, discardreversals, minmeasures, startvalue, num2str(steps), feedback);
 
   % Configure presentstimulus
-  presentstimulus([], [], parameters, playdev);
+  presentstimulus([], [], parameters, device);
 
   % Make start value adaptable
   startvalue_corrected = startvalue;
@@ -103,7 +98,7 @@ function measure_sweep(targetfile, parameters, device)
   end
 end
 
-function offset = presentstimulus(presentation, value, parameters, playdev)
+function offset = presentstimulus(presentation, value, parameters, device)
   offset = nan;
 
   % Use persistent variables for configuration
@@ -112,11 +107,11 @@ function offset = presentstimulus(presentation, value, parameters, playdev)
     cache.count = 0;
     cache.id = rand(1);
     cache.parameters = parameters;
-    cache.playdev = playdev;
+    cache.device = device;
     cache.stimulusplayer = [];
   else
     parameters = cache.parameters;
-    playdev = cache.playdev;
+    device = cache.device;
     if ~isempty(cache.stimulusplayer)
       stop(cache.stimulusplayer);
     end
@@ -130,10 +125,12 @@ function offset = presentstimulus(presentation, value, parameters, playdev)
   % Generate the sweep using the sweep stimulus function
   [stimulus, fs] = gensweep(presentation, value, parameters);
 
-  % Playback with 24bit samples on "playdev" (depends on capabilities of device, choose highest possible)
-  stimulus = [stimulus; zeros(round(0.1.*fs),2)];
-  cache.stimulusplayer = audioplayer(stimulus, fs, 24, playdev);
-  play(cache.stimulusplayer);
+  % The Octave audioplayer cannot reproduce more than 2 channels
+  %cache.stimulusplayer = audioplayer(stimulus, fs, 24, playdev);
+  %play(cache.stimulusplayer);
+  filename = sprintf('/dev/shm/audioplayer-tmp-%010.0f-%i.wav', cache.id.*1E10, cache.count);
+  audiowrite(filename, stimulus, fs, 'BitsPerSample', 32);
+  status = unix(['./playsound.sh "', filename, '" "', device, '" 1 1>/dev/null 2>/dev/null &']);
 end
 
 function answer = getanswer(count)

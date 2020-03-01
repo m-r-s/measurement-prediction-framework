@@ -1,12 +1,6 @@
 function measure_matrix(targetfile, parameters, device)
   % Work with 48kHz sample rate
-  fs = 48000;
-
-  % Find device ID for audio playback
-  playdev = audiodevinfo(0,sprintf('%s (JACK Audio Connection Kit)',device));
-  if isempty(playdev)
-    error(sprintf('Could not find playback device: %s\n',device));
-  end
+  fs = 44100;
 
   % Adaptive configuration
   target = 0.5;
@@ -26,7 +20,7 @@ function measure_matrix(targetfile, parameters, device)
 
   % Get parameter variables from string
   parameters_parts = strsplit(parameters, ',');
-  [talker, masker, level, ear] = parameters_parts{:};
+  [talker, masker, level] = parameters_parts{:};
   level = str2double(level);
   
   % Interpret start value
@@ -53,25 +47,6 @@ function measure_matrix(targetfile, parameters, device)
   if noisefs ~= fs
     signal = resample(signal, fs, noisefs);
   end
-  % Mix up mono signals
-  if size(signal,2) == 1
-    signal = [signal, signal];
-  end
-  % Check for stereo signal
-  if size(signal,2) ~= 2
-    error('Number of channels not supported');
-  end
-  % Select playback channels
-  switch ear
-    case 'l'
-      signal(:,2) = 0;
-    case 'r'
-      signal(:,1) = 0;
-    case 'b'
-
-    otherwise
-      error('Unknown ear definition (l/r/b)');
-  end
   noise = signal;
   
   % Shuffle a random list and use it
@@ -95,30 +70,11 @@ function measure_matrix(targetfile, parameters, device)
     if speechfs ~= fs
       signal = resample(signal, fs, speechfs);
     end
-    % Mix up mono signals
-    if size(signal,2) == 1
-      signal = [signal, signal];
-    end
-    % Check for stereo signal
-    if size(signal,2) ~= 2
-      error('Number of channels not supported');
-    end
-    % Select playback channels
-    switch ear
-      case 'l'
-        signal(:,2) = 0;
-      case 'r'
-        signal(:,1) = 0;
-      case 'b'
-
-      otherwise
-        error('Unknown ear definition (l/r/b)');
-    end
     speech{i} = signal;
   end
 
   % Configure presentstimulus
-  presentstimulus([], [], speech, noise, fs, playdev);
+  presentstimulus([], [], speech, noise, fs, device);
 
   % Start adaptive matrix measurement
   [threshold, values, reversals, measures, presentations, answers, adjustments, offsets] =...
@@ -181,7 +137,7 @@ function measure_matrix(targetfile, parameters, device)
   end
 end
 
-function noise_offset = presentstimulus(presentation, value, speech, noise, fs, playdev)
+function noise_offset = presentstimulus(presentation, value, speech, noise, fs, device)
   padd_duration = 0.500; % s
   flank_duration = 0.100; % s
 
@@ -193,13 +149,13 @@ function noise_offset = presentstimulus(presentation, value, speech, noise, fs, 
     cache.speech = speech;
     cache.noise = noise;
     cache.fs = fs;
-    cache.playdev = playdev;
+    cache.device = device;
     cache.stimulusplayer = [];
   else
     speech = cache.speech;
     noise = cache.noise;
     fs = cache.fs;
-    playdev = cache.playdev;
+    device = cache.device;
     if ~isempty(cache.stimulusplayer)
       stop(cache.stimulusplayer);
     end
@@ -221,10 +177,12 @@ function noise_offset = presentstimulus(presentation, value, speech, noise, fs, 
   speechinnoise = speech_tmp .* 10.^(value./20) + noise_tmp;
   stimulus = flank(speechinnoise, flank_samples);
   
-  % Playback with 24bit samples on "playdev" (depends on capabilities of device, choose highest possible)
-  stimulus = [stimulus; zeros(round(0.1.*fs),2)];
-  cache.stimulusplayer = audioplayer(stimulus, fs, 24, playdev);
-  play(cache.stimulusplayer);
+  % The Octave audioplayer cannot reproduce more than 2 channels
+  %cache.stimulusplayer = audioplayer(stimulus, fs, 24, playdev);
+  %play(cache.stimulusplayer);
+  filename = sprintf('/dev/shm/audioplayer-tmp-%010.0f-%i.wav', cache.id.*1E10, cache.count);
+  audiowrite(filename, stimulus, fs, 'BitsPerSample', 32);
+  status = unix(['./playsound.sh "', filename, '" "', device, '" 1 1>/dev/null 2>/dev/null &']);
 end
 
 function answer = getanswer(count, explanationidx)

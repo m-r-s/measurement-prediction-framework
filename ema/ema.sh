@@ -10,15 +10,15 @@ DIR=$(cd "$( dirname "$0" )" && pwd)
 SCN=$(basename "$0")
 
 # Set the version string
-export EMA_VERSION=3.0.0
+export EMA_VERSION="3.0.0-APPP"
 
 # Audio setup configuration
 SOUNDDEVICE=USB
 SOUNDSTREAM=0
 SOUNDCHANNELS=1,2
-SAMPLERATE=48000 # MUST be 48000 Hz
-FRAGSIZE=960 # MUST be multiple of 48 (1ms)
-PERIODS=4 #
+SAMPLERATE=44100
+FRAGSIZE=512
+PERIODS=4
 INPUTS=("" "")
 OUTPUTS=('system:playback_1' 'system:playback_2') # left right
 
@@ -32,20 +32,29 @@ IMPAIRMENTSTRINGS=('No simulated impairment')
 
 # Define measurement blocks <measurement>,<processing>[,individual]-<measurement-parameters>
 MEASUREMENTS=()
-# 1. TRAINING
-MEASUREMENTS[0]='sweep,none-1000,b,train matrix,none-default,quiet,65,b,train'
+# 1. Audiogram (optional)
+MEASUREMENTS[0]='sweep,unaided-250 sweep,unaided-500 sweep,unaided-1000 sweep,unaided-2000 sweep,unaided-4000 sweep,unaided-8000'
 
-# 2. SWEEPS
-MEASUREMENTS[1]='sweep,none-250,l sweep,none-500,l sweep,none-1000,l sweep,none-2000,l sweep,none-4000,l sweep,none-6000,l sweep,none-250,r sweep,none-500,r sweep,none-1000,r sweep,none-2000,r sweep,none-4000,r sweep,none-6000,r'
+# 2. Tone-in-noise training
+MEASUREMENTS[1]='sweepinnoise,unaided-1000,train'
 
-# 3. TONE IN NOISE
-MEASUREMENTS[2]='sweepinnoise,none-500,l sweepinnoise,none-1000,l sweepinnoise,none-2000,l sweepinnoise,none-4000,l sweepinnoise,none-500,r sweepinnoise,none-1000,r sweepinnoise,none-2000,r sweepinnoise,none-4000,r'
+# 3. Tone-in-noise test
+MEASUREMENTS[2]='sweepinnoise,unaided-500 sweepinnoise,unaided-1000 sweepinnoise,unaided-2000 sweepinnoise,unaided-4000'
 
-# 4. MATRIX
-MEASUREMENTS[3]='matrix,none-default,quiet,0,b matrix,none-default,whitenoise,65,b matrix,openMHA-default,quiet,65,b matrix,openMHA-default,whitenoise,65,b'
+# 4. Matrix training 1
+MEASUREMENTS[3]='matrix,unaided-default,tsn,65,train1 matrix,compressive,id-default,tsn,65,train1'
 
-MEASUREMENTSTRINGS=('Training' 'Tone detection' 'Tone detection in noise' 'Matrix sentence tests')
-MEASUREMENTSEQUENCES=('unchanged' 'random' 'random' 'random')
+# 5. Matrix tests 1
+MEASUREMENTS[4]='matrix,unaided-default,icra1,65 matrix,linear,id-default,icra1,65 matrix,compressive,id-default,icra1,65 matrix,full,id-default,icra1,65 matrix,unaided-default,icra5.250,65 matrix,linear,id-default,icra5.250,65 matrix,compressive,id-default,icra5.250,65 matrix,full,id-default,icra5.250,65'
+
+# 6. Matrix training 2
+MEASUREMENTS[5]='matrix,unaided-default,tsn,65,train2'
+
+# 7. Matrix tests 2
+MEASUREMENTS[6]='matrix,unaided-default,quiet,65 matrix,linear,id-default,quiet,65 matrix,compressive,id-default,quiet,65 matrix,full,id-default,quiet,65'
+
+MEASUREMENTSTRINGS=('Audiogram (optional)' 'Tone-in-noise training' 'Tone-in-noise test' 'Matrix training 1' 'Matrix tests 1' 'Matrix training 2' 'Matrix tests 2')
+MEASUREMENTSEQUENCES=('unchanged' 'unchanged' 'unchanged' 'unchanged' 'random' 'unchanged' 'random')
 
 # Say hello
 echo ""
@@ -85,6 +94,8 @@ start_measurement() {
   local PROCESSINGDIR
   local PROCESSINGPID
   local PROCESSINGDEVICE
+  local LEFTPORT
+  local RIGHTPORT
 
   TARGETFILE="$1"
   IMPAIRMENT="$2"
@@ -123,7 +134,22 @@ start_measurement() {
         error "individual processing missing!"
       ;;
     esac
-    ${DIR}/start_processing.sh "${PROCESSINGDIR}" "" "" "loop:input_1" "loop:input_2" &>> "$PROCESSINGLOG" || error "start processing failed"
+    case "$EAR" in
+      "l")
+        LEFTPORT="loop:input_1"
+        RIGHTPORT=""
+      ;;
+      "r")
+        LEFTPORT=""
+        RIGHTPORT="loop:input_2"
+      ;;
+      "b")
+        LEFTPORT="loop:input_1"
+        RIGHTPORT="loop:input_2"
+      ;;
+    esac
+
+    ${DIR}/start_processing.sh "${PROCESSINGDIR}" "" "" "$LEFTPORT" "$RIGHTPORT" &>> "$PROCESSINGLOG" || error "start processing failed"
     PROCESSINGPID=$(cat "${PROCESSINGDIR}/processing.pid")
     PROCESSINGDEVICE=($(cat "${PROCESSINGDIR}/processing.ports" | tr ',' '\n' | cut -d: -f1 | sort -u))
     [ "${#PROCESSINGDEVICE[@]}" -eq 1 ] || error "multiple devices requested"
@@ -160,7 +186,8 @@ ui_get_user_data() {
   local IDS
   local IDN
   ID=''
-  while [ -z "$ID" ] || [[ "$ID" == *' '* ]]; do
+  while [ -z "${ID}" ] || [[ "${ID}" == *' '* ]] || \
+      ([[ ! "${ID}" == *-l ]] && [[ ! "${ID}" == *-r ]] && [[ ! "${ID}" == *-b ]]); do
     echo ""
     echo "Available IDs:"
     IDS=($(ls -1 data 2> /dev/null))
@@ -174,7 +201,7 @@ ui_get_user_data() {
     if [ "$IDN" == 0 ]; then
       ID=''
       while [ -z "$ID" ]; do
-        echo -n "New ID: "
+        echo -n "New ID (suffix -l/-r indicates side): "
         read ID
       done
     else
@@ -242,6 +269,7 @@ ui_plot_measurements() {
 
 change_id() {
   ui_get_user_data || error 'load user data'
+  EAR="${ID: -1}"
   WORKDIR="${PWD}/data/${ID}"
   mkdir -p "$WORKDIR" || error 'create workdir'
 }
@@ -400,7 +428,7 @@ while true; do
       echo "       +------------------------------------------------------------"
       echo "-------|  VERSION ${EMA_VERSION}"
       echo "  EMA  |------------------------------"
-      echo "-------|  ID ${ID}"
+      echo "-------|  ID ${ID}    EAR ${EAR}"
       echo "       +---------------"
       echo ""
       echo "    1)   Change ID (${ID})"

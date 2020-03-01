@@ -3,7 +3,7 @@ close all;
 clear;
 clc;
 
-fs = 48000; % Hz
+fs = 44100; % Hz
 targetlevel = 80; % dB SPL
 duration = 6; % s
 

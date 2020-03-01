@@ -1,12 +1,12 @@
 function varargout = control_gensweepinnoise(varargin)
 
+nul = {''};
 frequencies = {'500' '1000' '2000' '4000' };
-ear = {'l' 'r' 'b'};
-explanation = {frequencies, ear};
+explanation = {nul, frequencies};
 
 title = 'Sweep detection in narrowband noise';
 target = 0.875;
-dim = 1;
+dim = 2;
 xfactor = 1;
 yfactor = 1;
 xlabel = 'Sweep center frequency [Hz]';
@@ -16,16 +16,10 @@ xmarks = [];
 ymarks = [0];
 
 % Empicial results
-level = [65 65 65; ...
-         51 51 51; ...
-         40 40 40; ...
-         22 22 22];
+level = zeros(size(frequencies));
 
 % Empirical standard deviation
-deviation = [2 2 2; ...
-             2 2 2; ...
-             2 2 2; ...
-             2 2 2];
+deviation = ones(size(frequencies));
 
 varargout = cell(size(varargin));
 for i=1:length(varargin)

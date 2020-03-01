@@ -58,7 +58,17 @@ fi
 echo "${PROC_IN1},${PROC_IN2}" > processing.ports
 
 echo "Connect requested ports"
-[ -n "$IN1" ] && jack_connect "$IN1" "$PROC_IN1"
-[ -n "$IN2" ] && jack_connect "$IN2" "$PROC_IN2"
-[ -n "$OUT1" ] && jack_connect "$PROC_OUT1" "$OUT1"
-[ -n "$OUT2" ] && jack_connect "$PROC_OUT2" "$OUT2"
+if [ -n "$IN1" ]; then
+  jack_connect "$IN1" "$PROC_IN1" || exit 1
+fi
+if [ -n "$IN2" ]; then
+  jack_connect "$IN2" "$PROC_IN2" || exit 1
+fi
+if [ -n "$OUT1" ]; then
+  jack_connect "$PROC_OUT1" "$OUT1" || exit 1
+fi
+if [ -n "$OUT2" ]; then
+  jack_connect "$PROC_OUT2" "$OUT2" || exit 1
+fi
+
+exit 0

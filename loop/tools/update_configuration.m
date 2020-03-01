@@ -3,18 +3,15 @@ close all
 clear
 clc
 
-% Advertise that the calibration must be checked
-error('please check your calibration');
-
-fs = 48000;
+fs = 44100;
 
 calibration = 6; % dB gain to theoretically achieve 130 dB SPL with an RMS of 1 at 1000 Hz.
 
 hardclip = 105; % dB SPL
 
 freq  = [   0  125  250  500  750 1000 1500 2000 3000 4000 6000 8000 10000 12000 14000 24000];
-gain1 = [ 4.0  4.0  4.5  2.5  1.5  0.0 -5.0 -4.5 -6.5 -5.0 -3.0 -3.0  -6.5  -9.0  -8.5  -8.5];
-gain2 = [ 4.0  4.0  4.5  2.5  1.5  0.0 -5.0 -4.5 -6.5 -5.0 -3.0 -3.0  -6.5  -9.0  -8.5  -8.5];
+gain1 = [ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0];
+gain2 = [ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0];
 
 % Calculate compensation filter coefficients
 max_range = 20.*48; % samples

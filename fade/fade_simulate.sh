@@ -5,7 +5,7 @@ DIR=$(cd "$( dirname "$0" )" && pwd)
 SCN=$(basename "$0")
 
 if [ $# -lt 7 ]; then
-  echo "Usage: $0 PREFIX MEASUREMENTSTRING IMPAIRMENT SIMRANGE SIMMODE FEATURES [FEATUREOPTION1] [FEATUREOPTION2] ..."
+  echo "Usage: $0 PROJECTDIR MEASUREMENTSTRING SIMRANGE SIMMODE FEATURES INDIVIDUALIZATION INDIVIDUAL EAR ..."
   echo ""
   exit 1
 fi
@@ -16,17 +16,17 @@ error() {
 }
 
 # Get arguments
-PREFIX="$1"
+PROJECTDIR="$1"
 MEASUREMENTSTRING="$2"
-IMPAIRMENT="$3"
-SIMRANGE="$4"
-SIMMODE="$5"
-FEATURES="$6"
-shift 6
-FEATUREOPTIONS=("$@")
+SIMRANGE="$3"
+SIMMODE="$4"
+FEATURES="$5"
+INDIVIDUALIZATION="$6"
+INDIVIDUAL="$7"
+EAR="$8"
 
 case "$SIMMODE" in
-  fast)
+  coarse)
     TRAININGSAMPELSPERMODEL=12
     RECOGNITIONDECISIONS=100
     # [STATES] [SILENCE_STATES] [MIXTURES] [ITERATIONS] [UPDATES] [PRUNINGS] [BINARY]
@@ -34,7 +34,15 @@ case "$SIMMODE" in
     RECOGNITIONOPTIONS="0 50 1"
     FEATURESMODE="${FEATURES}-reduced"
   ;;
-  full)
+  medium)
+    TRAININGSAMPELSPERMODEL=48
+    RECOGNITIONDECISIONS=300
+    # [STATES] [SILENCE_STATES] [MIXTURES] [ITERATIONS] [UPDATES] [PRUNINGS] [BINARY]
+    TRAININGOPTIONS="6 4 1 4 mvwt 0 1"
+    RECOGNITIONOPTIONS="0 100 1"
+    FEATURESMODE="${FEATURES}-reduced"
+  ;;
+  precise)
     TRAININGSAMPELSPERMODEL=96
     RECOGNITIONDECISIONS=600
     # [STATES] [SILENCE_STATES] [MIXTURES] [ITERATIONS] [UPDATES] [PRUNINGS] [BINARY]
@@ -44,8 +52,6 @@ case "$SIMMODE" in
     FEATURESMODE="${FEATURES}-full"
   ;;
 esac
-
-PROJECTDIR="${PREFIX}M${MEASUREMENTSTRING}-I${IMPAIRMENT}-S${SIMMODE}-F${FEATURES}"
 
 if [ -e "${PROJECTDIR}" ]; then
   echo "project directory already exists '${PROJECTDIR}'"
@@ -59,8 +65,13 @@ PARAMETERS=($(echo "${CONDITIONCODE[1]}" | tr ',' ' '))
 MEASUREMENT="${CONDITION[0]}"
 PROCESSING="${CONDITION[1]}"
 
-THRESHOLDNOISE="${DIR}/impairment/${IMPAIRMENT}/thresholdsimulatingnoise.wav"
-PROCESSINGDIR="${DIR}/processing/${PROCESSING}/"
+if [ "${CONDITION[2]}" == "id" ]; then
+  PROCESSINGDIR="${DIR}/data/${INDIVIDUAL}/processing/${PROCESSING}/"
+elif [ "${CONDITION[2]}" == "" ]; then
+  PROCESSINGDIR="${DIR}/processing/${PROCESSING}/"
+else
+  error "unknown processing parameter"
+fi
 FEATURESDIR="${DIR}/features/${FEATURESMODE}/"
 
 # Set up experiment
@@ -69,7 +80,6 @@ case "$MEASUREMENT" in
     QSIM_THRESHOLD=0.875
     fade "$PROJECTDIR" corpus-stimulus "$[${TRAININGSAMPELSPERMODEL}*1]" "$[${RECOGNITIONDECISIONS}/2]" || error "creating project"
     FREQUENCY=${PARAMETERS[0]}
-    EAR=${PARAMETERS[1]}
     cp -L "${DIR}/stimulus/"* "${PROJECTDIR}/config/corpus/matlab" || error "copying stimulus generation files"
     cp -L "${DIR}/stimulus/control_"* "${PROJECTDIR}/config/figures/matlab" || error "copying stimulus control files"
     echo "function generate(target_dir, samples, seed, verbose)
@@ -79,14 +89,13 @@ case "$MEASUREMENT" in
           funname = 'gensweep';
           values = ${SIMRANGE};
           generate_conditions(target_dir, funname, classes, ...
-            num2cell(values), samples, {'${FREQUENCY},${EAR}'}, seed, verbose);
+            num2cell(values), samples, {'${FREQUENCY}'}, seed, verbose);
           " > "${PROJECTDIR}/config/corpus/matlab/generate.m"
   ;;
   sweepinnoise)
     QSIM_THRESHOLD=0.875
     fade "$PROJECTDIR" corpus-stimulus "$[${TRAININGSAMPELSPERMODEL}*1]" "$[${RECOGNITIONDECISIONS}/2]" || error "creating project"
     FREQUENCY=${PARAMETERS[0]}
-    EAR=${PARAMETERS[1]}
     cp -L "${DIR}/stimulus/"* "${PROJECTDIR}/config/corpus/matlab" || error "copying stimulus generation files"
     cp -L "${DIR}/stimulus/control_"* "${PROJECTDIR}/config/figures/matlab" || error "copying stimulus control files"
     echo "function generate(target_dir, samples, seed, verbose)
@@ -96,7 +105,7 @@ case "$MEASUREMENT" in
           funname = 'gensweepinnoise';
           values = ${SIMRANGE};
           generate_conditions(target_dir, funname, classes, ...
-            num2cell(values), samples, {'${FREQUENCY},${EAR}'}, seed, verbose);
+            num2cell(values), samples, {'${FREQUENCY}'}, seed, verbose);
           " > "${PROJECTDIR}/config/corpus/matlab/generate.m"
   ;;
   matrix)
@@ -104,14 +113,13 @@ case "$MEASUREMENT" in
     TALKER="${PARAMETERS[0]}"
     NOISEMASKER="${PARAMETERS[1]}"
     NOISELEVEL="${PARAMETERS[2]}"
-    EAR="${PARAMETERS[3]}"
     fade "$PROJECTDIR" corpus-matrix "$[${TRAININGSAMPELSPERMODEL}*10]" "$[${RECOGNITIONDECISIONS}/5]" || error "creating project"
     cp -L "${DIR}/matrix/speech/${TALKER}/"*".wav" "${PROJECTDIR}/source/speech/" || error "copying speech files"
     cp -L "${DIR}/matrix/maskers/${NOISEMASKER}.wav" "${PROJECTDIR}/source/noise/" || error "copying masker file"
     (cd "${PROJECTDIR}/source" && find -iname '*.wav') > "${PROJECTDIR}/config/sourcelist.txt"
-    # Adjust level and resample to 48kHz
-    echo "Adjust levels, resample, and select channels"
-    octave-cli --quiet --eval "ear = '${EAR}';
+    # Adjust level and resample to 44100Hz
+    echo "Adjust levels and resample"
+    octave-cli --quiet --eval "
       filelist = strsplit(fileread('${PROJECTDIR}/config/sourcelist.txt'),'\n');
       numfiles = length(filelist);
       for i=1:numfiles
@@ -119,20 +127,10 @@ case "$MEASUREMENT" in
           filename = ['${PROJECTDIR}/source/' filelist{i}];
           [signal, fs] = audioread(filename);
           signal = signal.*10.^((${NOISELEVEL}-65)./20);
-          if fs ~= 48000
-            signal = resample(signal, 48000, fs);
+          if fs ~= 44100
+            signal = resample(signal, 44100, fs);
           end
-          switch ear
-            case 'l'
-              signal(:,2) = 0;
-            case 'r'
-              signal(:,1) = 0;
-            case 'b'
-
-            otherwise
-              error('Unknown ear definition (l/r/b)');
-          end
-          audiowrite(filename, signal, 48000, 'BitsPerSample', 32);
+          audiowrite(filename, signal, 44100, 'BitsPerSample', 32);
           printf('.');
         end
       end
@@ -150,47 +148,15 @@ fade "$PROJECTDIR" corpus-generate || error "generating corpus"
 # Perform signal processing
 if [ ! "$PROCESSING" == "none" ]; then
   echo "Apply signal processing"
+  [ -e "$PROCESSINGDIR" ] || error "processingdir not found"
   fade "$PROJECTDIR" processing "$PROCESSINGDIR" || error "processing"
 fi
 
-# Apply threshold simulating noise
-if [ ! "$IMPAIRMENT" == "none" ]; then
-  echo "Apply threshold simulating noise"
-  if [ -e "${PROJECTDIR}/processing" ]; then
-      (cd "${PROJECTDIR}/processing" && find "$PWD" -iname '*.wav') > "${PROJECTDIR}/config/impairmentlist.txt" || error "finding processed files"
-  elif [ -e "${PROJECTDIR}/corpus" ]; then
-      (cd "${PROJECTDIR}/corpus" && find "$PWD" -iname '*.wav') > "${PROJECTDIR}/config/impairmentlist.txt" || error "finding corpus files"
-  else
-      error "finding files for applying threshold simulating noise"
-  fi
-  octave-cli --quiet --eval "
-    filelist = strsplit(fileread('${PROJECTDIR}/config/impairmentlist.txt'),'\n');
-    numfiles = length(filelist);
-    [thresholdnoise, fs]=audioread('${THRESHOLDNOISE}');
-    if fs ~= 48000
-      thresholdnoise = resample(thresholdnoise, 48000, fs);
-    end
-    for i=1:numfiles
-      if ~isempty(filelist{i})
-        filename=filelist{i};
-        [signal, fs]=audioread(filename);
-        if fs ~= 48000
-          signal = resample(signal, 48000, fs);
-        end
-        thresholdoffset=floor(rand(1)*(size(thresholdnoise,1)-size(signal,1)-1));
-        signal = signal + thresholdnoise(1+thresholdoffset:size(signal,1)+thresholdoffset,:);
-        audiowrite(filename, signal, 48000, 'BitsPerSample', 32);
-        printf('.');
-      end
-    end
-    printf('\nfinished\n');" || error "applying threshold simulating noise"
-fi
-
 # Extract features
-fade "$PROJECTDIR" features "$FEATURESDIR" ${FEATUREOPTIONS[@]} || error "extracting features"
+fade "$PROJECTDIR" features "$FEATURESDIR" "$INDIVIDUALIZATION" "$INDIVIDUAL" "$EAR" || error "extracting features"
 
 # Format corpus (determine training/testing combinations)
-if [ "$SIMMODE" == "fast" ]; then
+if [ "$SIMMODE" == "coarse" ] || [ "$SIMMODE" == "medium" ] ; then
   case "$MEASUREMENT" in
     sweep)
       CONDITION_CODE='o o o'
@@ -216,7 +182,7 @@ fade "$PROJECTDIR" recognition $RECOGNITIONOPTIONS || error "recognition"
 fade "$PROJECTDIR" evaluation || error "evaluating results"
 
 case "$SIMMODE" in
-  fast)
+  coarse|medium)
   # Evaluate quick simulation to find point of interest
 
   POI=$(cat "${PROJECTDIR}/evaluation/summary" | \
@@ -231,7 +197,7 @@ case "$SIMMODE" in
   echo -e "\nPOI found: ${POI}\n"
   echo "${POI}" > "${PROJECTDIR}/poi"
   ;;
-  full)
+  precise)
     fade "$PROJECTDIR" figures
   ;;
 esac
