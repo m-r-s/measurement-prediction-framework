@@ -1,0 +1,29 @@
+#!/bin/bash
+
+SOURCELIST="$1"
+TARGETLIST="$2"
+INCREMENT="$3"
+OFFSET="$4"
+shift 4
+
+DIR=$(cd "$( dirname "$0" )" && pwd)
+
+octave-cli --quiet --eval "cd('${DIR}');addpath('${PLATT_PATH}');
+  sourcelist=strsplit(fileread('${SOURCELIST}'),'\n');
+  targetlist=strsplit(fileread('${TARGETLIST}'),'\n');
+  increment = ${INCREMENT};
+  offset = ${OFFSET};
+  numfiles = length(sourcelist);
+  for i=offset:increment:numfiles
+    if ~isempty(sourcelist{i}) && ~isempty(targetlist{i})
+      [signal, fs] = audioread(sourcelist{i});
+      if fs ~= 48000
+        signal = resample(signal, 48000, fs);
+      end
+      [left, right] = platt(single(signal(:,1)),single(signal(:,2)));
+      audiowrite(targetlist{i}, [left, right], 48000, 'BitsPerSample', 32);
+      printf('.');
+    end
+  end"
+
+

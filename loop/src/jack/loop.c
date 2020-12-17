@@ -19,8 +19,6 @@ int
 process (jack_nframes_t nframes, void *arg)
 {
   jack_default_audio_sample_t *in1, *in2, *out1, *out2;
-  float const limit_tmp = limit[0];
-  float const nlimit_tmp = -limit[0];
   
   in1 = jack_port_get_buffer (input_port1, nframes);
   in2 = jack_port_get_buffer (input_port2, nframes);
@@ -33,22 +31,8 @@ process (jack_nframes_t nframes, void *arg)
   } else {
     for (int i=0; i<nframes; i+=TICKSAMPLES) {
       // PROCESS!
-      filter(&in1[i], &out1[i], inputbuffer1, impulseresponse1, range1);
-      for (int j=i; j<i+TICKSAMPLES; j++) {
-        if (out1[j] > limit_tmp) {
-           out1[j] = limit_tmp;
-        } else if (out1[j] < nlimit_tmp) {
-            out1[j] = nlimit_tmp;
-        }
-      }
-      filter(&in2[i], &out2[i], inputbuffer2, impulseresponse2, range2);
-      for (int j=i; j<i+TICKSAMPLES; j++) {
-        if (out2[j] > limit_tmp) {
-           out2[j] = limit_tmp;
-        } else if (out2[j] < nlimit_tmp) {
-            out2[j] = nlimit_tmp;
-        }
-      }
+      filter(&in1[i], &out1[i], inputbuffer1, impulseresponse1, range1, limit);
+      filter(&in2[i], &out2[i], inputbuffer2, impulseresponse2, range2, limit);
       tickcount = (tickcount+1)%FILTERLENGTH;
     }
   }
@@ -122,6 +106,9 @@ main (int argc, char *argv[])
   printf("SAMPLERATE: %i\n",SAMPLERATE);
   printf("TICKSAMPLES: %i\n",TICKSAMPLES);
   printf("FILTERLENGTH: %i\n",FILTERLENGTH);
+  printf("range1[0,1] = [%i %i]\n",range1[0],range1[1]);
+  printf("range2[0,1] = [%i %i]\n",range2[0],range2[1]);
+  printf("limit = %.8f\n",limit[0]);
   printf("\n");
 
   for (int i=0;i<TICKSAMPLES*FILTERLENGTH;i++) {
@@ -131,10 +118,6 @@ main (int argc, char *argv[])
   for (int i=0;i<TICKSAMPLES*FILTERLENGTH;i++) {
     printf("impulseresponse2[%i] = [%.8f]\n",i,impulseresponse2[i]);
   }
-  printf("range1[0,1] = [%i %i]\n",range1[0],range1[1]);
-  printf("range2[0,1] = [%i %i]\n",range2[0],range2[1]);
-  printf("\n");
-  printf("limit = %.8f\n",limit[0]);
   printf("\n");
 #endif
 

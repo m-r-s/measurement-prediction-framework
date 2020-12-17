@@ -8,13 +8,19 @@ error('please check your calibration');
 
 fs = 48000;
 
-calibration = 6; % dB gain to theoretically achieve 130 dB SPL with an RMS of 1 at 1000 Hz.
+calibration = 5; % dB gain to theoretically achieve 130 dB SPL with an RMS of 1 at 1000 Hz.
 
 hardclip = 105; % dB SPL
 
 freq  = [   0  125  250  500  750 1000 1500 2000 3000 4000 6000 8000 10000 12000 14000 24000];
 gain1 = [ 4.0  4.0  4.5  2.5  1.5  0.0 -5.0 -4.5 -6.5 -5.0 -3.0 -3.0  -6.5  -9.0  -8.5  -8.5];
 gain2 = [ 4.0  4.0  4.5  2.5  1.5  0.0 -5.0 -4.5 -6.5 -5.0 -3.0 -3.0  -6.5  -9.0  -8.5  -8.5];
+% Corrections according to Kemar artificial head (measured at eardrum microphone)
+kemar1 =[ 0.0  2.0 -1.0 -2.0 -2.0 -3.0 -1.0 -9.0 -13.0 -10.0 -2.0 0.0  6.0   3.0   2.0   0.0];
+kemar2 =[ 0.0  7.0  1.0 -4.0 -4.0 -3.0 -2.0 -9.0 -15.0 -9.0   0.0 2.0  6.0   5.0   7.0   0.0];
+kemar_mean = mean([kemar1;kemar2])
+gain1 = gain1 - kemar_mean;
+gain2 = gain2 - kemar_mean;
 
 % Calculate compensation filter coefficients
 max_range = 20.*48; % samples
@@ -62,7 +68,7 @@ ir2 = single(ir2);
 range1 = int32(selectmain(ir1,level1)-1);
 range2 = int32(selectmain(ir2,level2)-1);
 
-limit = single(10.^((hardclip-130+calibration)./20));
+limit = single(10.^((hardclip-130)./20));
 
 % Write coefficients and ranges to files
 fp = fopen('../src/configuration/impulseresponse1.bin','wb');

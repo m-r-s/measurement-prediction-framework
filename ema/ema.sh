@@ -10,7 +10,7 @@ DIR=$(cd "$( dirname "$0" )" && pwd)
 SCN=$(basename "$0")
 
 # Set the version string
-export EMA_VERSION=3.0.1
+export EMA_VERSION=3.1.0
 
 # Audio setup configuration
 SOUNDDEVICE=USB
@@ -56,7 +56,8 @@ echo ""
 # Define some functions
 error() {
   echo "error: ${1}"
-  [ -n "$PROCESSINGPID" ] && kill "$PROCESSINGPID" &> /dev/null &
+  [ -n "$PROCESSINGPID" ] && kill "$PROCESSINGPID"  &> /dev/null  &
+  [ -n "$IMPAIRMENTPID" ] && kill "$IMPAIRMENTPID"  &> /dev/null &
   [ -n "$JACKPID" ] && kill "$JACKPID" &> /dev/null &
   [ -n "$LOOPPID" ] && kill "$LOOPPID" &> /dev/null &
   echo ""
@@ -64,7 +65,8 @@ error() {
 }
 
 finish() {
-  [ -n "$PROCESSINGPID" ] && kill "$PROCESSINGPID"  &> /dev/null  &
+  [ -n "$PROCESSINGPID" ] && kill "$PROCESSINGPID" &> /dev/null  &
+  [ -n "$IMPAIRMENTPID" ] && kill "$IMPAIRMENTPID" &> /dev/null &
   [ -n "$JACKPID" ] && kill "$JACKPID" &> /dev/null &
   [ -n "$LOOPPID" ] && kill "$LOOPPID" &> /dev/null &
   echo ""
@@ -103,7 +105,7 @@ start_measurement() {
     [ -e "${IMPAIRMENTDIR}/thresholdsimulatingnoise.wav" ] || error "threshold simulating noise file does not exist: '${IMPAIRMENTDIR}/thresholdsimulatingnoise.wav'"
     octave-cli --quiet --eval "addpath('${MADDPATH}');playwavfile('${IMPAIRMENTDIR}/thresholdsimulatingnoise.wav', 'b', 'loop');" &>/dev/null & disown
     IMPAIRMENTPID=$!
-    sleep 0.5
+    sleep 2
   fi
   
   # Start the processing
@@ -146,6 +148,11 @@ start_measurement() {
       echo "Start matrix measurements..."
       octave-cli --quiet --eval "addpath('${MADDPATH}');addpath('${MSTIMULUSPATH}');measure_matrix('${TARGETFILE}','${PARAMETERS}','${PROCESSINGDEVICE}')" \
         2>> "$OCTAVELOG" | tee -a "$USERLOG" || error "matrix measurement failed"
+    ;;
+    loudness)
+      echo "Start loudness measurements..."
+      octave-cli --quiet --eval "addpath('${MADDPATH}');addpath('${MSTIMULUSPATH}');measure_loudness('${TARGETFILE}','${PARAMETERS}','${PROCESSINGDEVICE}')" \
+        2>> "$OCTAVELOG" | tee -a "$USERLOG" || error "loudness measurement failed"
     ;;
     *)
     echo "Measurement '${MEASUREMENT}' not defined"
@@ -297,11 +304,11 @@ USERLOG="${PWD}/log/user.log"
 # Initial audio setup
 killall -9 loop &> /dev/null &
 killall -9 mha &> /dev/null &
-killall -9 platt &> /dev/null & 
-killall -9 jackd &> /dev/null & 
+killall -9 platt &> /dev/null &
+killall -9 jackd &> /dev/null &
 sleep 1
 [ -z "$(pidof loop)" ] || error 'zombie loop'
-[ -z "$(pidof mha)" ] || error 'zombie mha'  
+[ -z "$(pidof mha)" ] || error 'zombie mha'
 [ -z "$(pidof platt)" ] || error 'zombie platt'
 [ -z "$(pidof jackd)" ] || error 'zombie jackd'
 
@@ -384,8 +391,8 @@ while true; do
     9)
       echo ""
       echo "  Essential Measurement Applications Version (${EMA_VERSION})"
-      echo "  Copyright (C) 2020 Marc René Schädler"
-      echo "  E-Mail: marc.r.schaedler@uni-oldenburg.de"
+      echo "  Author (2020) Marc René Schädler"
+      echo "  E-Mail: marc.rene.schaedler@uni-oldenburg.de"
       echo ""
       echo -n "Press enter to return to menu..."
       read
@@ -434,5 +441,6 @@ while true; do
     ;;
   esac
 done
+
 
 

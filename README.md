@@ -3,9 +3,9 @@ This expert software framework can be used to implement, perform, and simulate (
 Measurements and simulations are tightly integrated, such that all implemented measurements can be performed and simulated with the same code base.
 The implementations are modular, such that they can be exchanged or used in other contexts.
 
-Copyright (C) 2020 Marc René Schädler
+Author (2020) Marc René Schädler
 
-E-mail: marc.r.schaedler@uni-oldenburg.de
+E-mail: marc.rene.schaedler@uni-oldenburg.de
 
 The repository currently contains a largely undocumented (but fully functional) code drop.
 The documentation will be added on demand over time.
@@ -48,7 +48,7 @@ However, your audio setup needs to be calibrated before using it.
 The calibration and compensation tools reside in `loop`.
 Please have a look at the `loop/tools/update_configuration.m`.
 The parameters for the calibration of your setup can be set there.
-Comment out the line which deliberately generates an error.
+Comment out the line which deliberately throws an error.
 
 The provided configuration works well for the Focusrite Scarlett 2i2 sound card and Sennheiser HDA 200 headphones.
 `ema/ema.sh` provides a menu for checking the calibration with narrow band noise signals.
@@ -90,8 +90,10 @@ Please have a look at the preconfigured example in `data/processing/openMHA9_una
 All measurements can be combined with all hearing device models, which allows to measure the aided performance in psychoacoustic and speech recognition tasks.
 
 It is also easy to extend the framework with own JACK plugins for aided measurements.
-For example the [PLATT dynamic compressor](https://github.com/m-r-s/platt) will also be available once the corresponding code is available.
-
+For example the [PLATT dynamic compressor](https://github.com/m-r-s/platt) is also available.
+PLATT is an implementation of a [patented dynamic compression scheme](https://www.innowi.de/de/unsere_patente/details/dynamikkompression-uol169) that aims to preserve speech intelligibility.
+Its engineered towards the use in hearing devices (it's fast).
+Still, it produces high quality signals (it minimizes compression).
 
 # References
 [1] Schädler, M. R., Warzybok, A., Ewert, S. D., Kollmeier, B. (2016) "A simulation framework for auditory discrimination experiments: Revealing the importance of across-frequency processing in speech perception", Journal of the Acoustical Society of America, Volume 139, Issue 5, pp. 2708–2723, URL: http://link.aip.org/link/?JAS/139/2708

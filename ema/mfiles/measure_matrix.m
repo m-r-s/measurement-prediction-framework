@@ -183,7 +183,7 @@ end
 
 function noise_offset = presentstimulus(presentation, value, speech, noise, fs, playdev)
   padd_duration = 0.500; % s
-  flank_duration = 0.100; % s
+  flank_duration = 0.200; % s
 
   % Use persistent variables for configuration
   persistent cache;

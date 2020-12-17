@@ -3,15 +3,26 @@ filter(float const * const in,
          float * const out,
          float * const inputbuffer,
          float const * const impulseresponse,
-         int const * const range
+         int const * const range,
+         float const * const limit
         )
 { 
   int filtersamples = FILTERLENGTH*TICKSAMPLES;
+  float limit_tmp = limit[0];
+  float nlimit_tmp = -limit[0];
+  
   // Copy new samples to the inputbuffer
   {
     int o1 = tickcount*TICKSAMPLES;
     for (int i=0;i<TICKSAMPLES;i++) {
-      inputbuffer[o1] = in[i];
+      float in_tmp = in[i];
+      if (in_tmp > limit_tmp) {
+        inputbuffer[o1] = limit_tmp;
+      } else if (in_tmp < nlimit_tmp) {
+        inputbuffer[o1] = nlimit_tmp;
+      } else {
+        inputbuffer[o1] = in_tmp;
+      }
       o1++;
     }
   }

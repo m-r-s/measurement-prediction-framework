@@ -1,0 +1,1 @@
+../core/adddynamic.c

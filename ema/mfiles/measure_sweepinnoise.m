@@ -36,6 +36,8 @@ function measure_sweepinnoise(targetfile, parameters, device)
           validanswer = 1;
         case {'a'}
           validanswer = 2;
+        otherwise
+          disp('Invalid option. Please choose 1, 0 or a.')
       end
     end
     % Evaluate answer
@@ -145,6 +147,8 @@ function answer = getanswer(count)
         validanswer = 1;
       case {'a'}
         validanswer = 2;
+      otherwise
+        disp('Invalid option. Please choose 1, 0 or a.')
     end
   end
   
