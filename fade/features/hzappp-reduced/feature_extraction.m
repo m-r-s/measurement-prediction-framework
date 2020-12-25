@@ -47,12 +47,12 @@ signal = signal(1+round(fs.*(0.100+rand(1).*0.010)):end);
 
 % Apply absolute hearing threshold
 ht_mel = interp1(f(:), ht(:), melspec_freqs(:), 'linear', 'extrap');
-log_melspec = max(bsxfun(@minus, log_melspec, ht_mel), randn(size(log_melspec)));
+log_melspec = max(log_melspec-ht_mel, 0.5.*randn(size(log_melspec)));
 
 % Apply frequency-dependent level-uncertainty
 ul_mel = interp1(f(:), ul(:), melspec_freqs(:), 'linear', 'extrap');
 ul_mel(isnan(ul_mel)) = 0.1;
-log_melspec = bsxfun(@times,log_melspec,1./ul_mel) + randn(size(log_melspec));
+log_melspec = log_melspec + ul_mel.*randn(size(log_melspec));
 
 % SGBFB feature extraction and mean-and-variance normalization
 features = mvn(sgbfb(log_melspec,[],[60 20],[],[0.3 0.3]));

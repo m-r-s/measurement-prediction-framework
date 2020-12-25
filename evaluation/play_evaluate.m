@@ -1,4 +1,4 @@
-#!/usr/bin/octave-cli
+#!/usr/bin/octave
 close all
 clear
 clc

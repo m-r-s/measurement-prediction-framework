@@ -1,9 +1,8 @@
-#!/usr/bin/octave-cli
+#!/usr/bin/octave
 close all
 clear
 clc
 warning off;
-graphics_toolkit qt
 
 subjects = { ...
   'listener01-l' ...  1
@@ -173,7 +172,7 @@ for l=1:2
       printf('%s & %s & ', names{i}, individualizations{k});
       pct = prctile(stats(:,:,i),[5 50 95]);
       pctg = prctile(statsg(:,i),[5 95]);
-      confidence = [pct(1,:)-pct(2,:); pct(3,:)-pct(2,:)];
+      confidence = [pct(1)-pct(2); pct(3)-pct(2)];
       confidenceg = pctg - values(i);
       printf('%.2f\\,%s & [%.2f,%.2f]\\,%s & [%.2f,%.2f]\\,%s \\\\',values(i),units{i},confidence,units{i},confidenceg,units{i});
       printf('\n');

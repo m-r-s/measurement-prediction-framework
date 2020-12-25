@@ -46,9 +46,12 @@ INDIVIDUALS=(
 )
 INDIVIDUALIZATIONS=(AD AG A)
 
+NUM_SIMULATIONS=$[${#INDIVIDUALS[@]} * ${#MEASUREMENTS[@]} * ${#INDIVIDUALIZATIONS[@]}]
+COUNT=0
 for ((I=0;$I<${#INDIVIDUALS[@]};I++)); do
   for ((J=0;$J<${#MEASUREMENTS[@]};J++)); do
     for ((K=0;$K<${#INDIVIDUALIZATIONS[@]};K++)); do
+      COUNT=$[${COUNT} + 1]
       CONDITIONCODE=($(echo "${MEASUREMENTS[$J]}" | tr '-' ' '))
       CONDITION=($(echo "${CONDITIONCODE[0]}" | tr ',' ' '))
       PARAMETERS=($(echo "${CONDITIONCODE[1]}" | tr ',' ' '))
@@ -58,39 +61,37 @@ for ((I=0;$I<${#INDIVIDUALS[@]};I++)); do
       INDIVIDUALIZATION="${INDIVIDUALIZATIONS[$K]}"
       
       STARTTIME=$(date +%s)
+      echo "SIMULATION ${COUNT}/${NUM_SIMULATIONS}: Start ${MEASUREMENTS[$J]} with ${INDIVIDUAL} ${INDIVIDUALIZATION}"
 
       # First run to find approximate POI
       PREFIX="${DATAPREF}prep1-"
       SIMMODE="coarse"
       SIMRANGE=""
       PROJECTDIR="${PREFIX}${INDIVIDUAL}-M${MEASUREMENTS[$J]}-F${FEATURES}-I${INDIVIDUALIZATION}"
+
       case "$MEASUREMENT" in
         sweep)
-          SIMRANGE="-10:10:110"
+          SIMRANGE="-10:10:120"
         ;;
         sweepinnoise)
           SIMRANGE="[-10:10:120]-65"
         ;;
         matrix)
-          SIMRANGE="[0:10:100]-${PARAMETERS[2]}"
+          SIMRANGE="[0:10:120]-${PARAMETERS[2]}"
         ;;
       esac
-      # Run simulation
+
+      # Run first simulation
       echo "START ${SIMMODE} SIMULATION on '${PROJECTDIR}'"
       "${DIR}/fade_simulate.sh" "$PROJECTDIR" "${MEASUREMENTS[$J]}" "$SIMRANGE" "$SIMMODE" "$FEATURES" "$INDIVIDUALIZATION" "$INDIVIDUAL" "$EAR"
       # Get POI
       POI=""
       [ -e "${PROJECTDIR}/poi" ] && POI=$(cat "${PROJECTDIR}/poi")
       if [ -z "$POI" ]; then
-        echo "POI NOT FOUND - SKIP MEASUREMENT!"
-        continue
+        echo "SIMULATION ${COUNT}/${NUM_SIMULATIONS}: ${SIMMODE} SRT NOT FOUND - SKIP!"
+        exit 1
       fi
-      [ -e "${PROJECTDIR}/source" ] && rm -r "${PROJECTDIR}/source"
-      [ -e "${PROJECTDIR}/corpus" ] && rm -r "${PROJECTDIR}/corpus"
-      [ -e "${PROJECTDIR}/processing" ] && rm -r "${PROJECTDIR}/processing"
-      [ -e "${PROJECTDIR}/features" ] && rm -r "${PROJECTDIR}/features"
-
-      echo "SIMULATION TIME: $[$(date +%s)-${STARTTIME}] seconds elapsed"
+      echo "SIMULATION ${COUNT}/${NUM_SIMULATIONS}: Found ${SIMMODE} SRT ${POI} after $[$(date +%s)-${STARTTIME}]s"
 
       # Second run to find better estimate of POI
       PREFIX="${DATAPREF}prep2-"
@@ -108,22 +109,18 @@ for ((I=0;$I<${#INDIVIDUALS[@]};I++)); do
           SIMRANGE="[-18:6:18]+${POI}"
         ;;
       esac
-      # Run simulation
+      
+      # Run second simulation
       echo "START ${SIMMODE} SIMULATION on '${PROJECTDIR}'"
       "${DIR}/fade_simulate.sh" "$PROJECTDIR" "${MEASUREMENTS[$J]}" "$SIMRANGE" "$SIMMODE" "$FEATURES" "$INDIVIDUALIZATION" "$INDIVIDUAL" "$EAR"
       # Get POI
       POI=""
       [ -e "${PROJECTDIR}/poi" ] && POI=$(cat "${PROJECTDIR}/poi")
       if [ -z "$POI" ]; then
-        echo "POI NOT FOUND - SKIP MEASUREMENT!"
-        continue
+        echo "SIMULATION ${COUNT}/${NUM_SIMULATIONS}: ${SIMMODE} SRT NOT FOUND - SKIP!"
+        exit 1
       fi
-      [ -e "${PROJECTDIR}/source" ] && rm -r "${PROJECTDIR}/source"
-      [ -e "${PROJECTDIR}/corpus" ] && rm -r "${PROJECTDIR}/corpus"
-      [ -e "${PROJECTDIR}/processing" ] && rm -r "${PROJECTDIR}/processing"
-      [ -e "${PROJECTDIR}/features" ] && rm -r "${PROJECTDIR}/features"
-
-      echo "SIMULATION TIME: $[$(date +%s)-${STARTTIME}] seconds elapsed"
+      echo "SIMULATION ${COUNT}/${NUM_SIMULATIONS}: Found ${SIMMODE} SRT ${POI} after $[$(date +%s)-${STARTTIME}]s"
 
       # Run actual simulation
       PREFIX="${DATAPREF}run-"
@@ -138,25 +135,23 @@ for ((I=0;$I<${#INDIVIDUALS[@]};I++)); do
           SIMRANGE="[-15:3:6]+${POI}"
         ;;
         matrix)
-          SIMRANGE="[-15:3:9]+${POI}"
+          SIMRANGE="[-12:2:8]+${POI}"
         ;;
       esac
-      # Run simulation
+
+      # Run final simulation
       echo "START ${SIMMODE} SIMULATION on '${PROJECTDIR}'"
       "${DIR}/fade_simulate.sh" "$PROJECTDIR" "${MEASUREMENTS[$J]}" "$SIMRANGE" "$SIMMODE" "$FEATURES" "$INDIVIDUALIZATION" "$INDIVIDUAL" "$EAR"
-      # Show result
-      echo "SIMULATION FINISHED"
-      cat "${PROJECTDIR}/figures/table.txt"
-      [ -e "${PROJECTDIR}/source" ] && rm -r "${PROJECTDIR}/source"
-      [ -e "${PROJECTDIR}/corpus" ] && rm -r "${PROJECTDIR}/corpus"
-      [ -e "${PROJECTDIR}/processing" ] && rm -r "${PROJECTDIR}/processing"
-      [ -e "${PROJECTDIR}/features" ] && rm -r "${PROJECTDIR}/features"
-      echo -e "\n"
-      echo "SIMULATION TIME: finished after $[$(date +%s)-${STARTTIME}] seconds"
+      SRT=$(tail -n+2 "${PROJECTDIR}/figures/table.txt" | tr -s ' ' | cut -d' ' -f 2 | tr -d '\n')
+      if [ -z "$SRT" ]; then
+        echo "SIMULATION ${COUNT}/${NUM_SIMULATIONS}: ${SIMMODE} SRT NOT FOUND - SKIP!"
+        exit 1
+      fi
+      echo "SIMULATION ${COUNT}/${NUM_SIMULATIONS}: Found ${SIMMODE} SRT ${SRT} in $[$(date +%s)-${STARTTIME}]s"
       echo -e "\n\n"
-   done
+    done
   done
-done
+done 2>&1 | tee -a simulation.log | grep "^SIMULATION "
 
 # Collect data for evaluation
 collect_tables.sh "$DATAPREF" > ../evaluation/matrix_simulated_data.txt

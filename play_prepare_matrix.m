@@ -74,7 +74,11 @@ function out = mix(in, irs, delays, gains)
     end
     filtered{i} = shift(filtered_tmp,delays(i)) .* 10.^(gains(i)./20);
   end
-  out = plus(filtered{:});
+  if numel(filtered) > 1
+    out = plus(filtered{:});
+  else
+    out = filtered{1};
+  end
 end
 
 function out = fftconv2(in1, in2, shape)
