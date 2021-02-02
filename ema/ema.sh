@@ -2,7 +2,7 @@
 #
 # Essential Measurement Applications
 #
-# Copyright (2020) Marc René Schädler
+# Main author: (2020-2021) Marc René Schädler
 # E-Mail: marc.r.schaedler@uni-oldenburg.de
 
 # Get the directory this script is stored in and its name
@@ -10,7 +10,7 @@ DIR=$(cd "$( dirname "$0" )" && pwd)
 SCN=$(basename "$0")
 
 # Set the version string
-export EMA_VERSION=3.1.0
+export EMA_VERSION=3.1.1
 
 # Audio setup configuration
 SOUNDDEVICE=USB

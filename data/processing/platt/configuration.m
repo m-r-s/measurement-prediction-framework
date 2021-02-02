@@ -4,8 +4,7 @@ cfg_freqs                = [  62.5  88.4  125.0 176.8 250.0 353.6 500.0 707.1 10
 % Input calibration
 cfg_calib_in             = [   130   130    130   130   130   130   130   130    130    130    130    130    130    130    130     130     130]; % dB SPL !!!
 % Output calibration
-cfg_calib_out            = [ 129.9 129.9  130.0 130.1 129.9 129.6 129.0 128.2  127.7  125.9  120.8  118.2  120.5  120.2  118.9   129.9   137.8]; % dB SPL !!!
-%cfg_calib_out            = [   130   130    130   130   130   130   130   130    130    130    130    130    130    130    130     130     130]; % dB SPL @ MIC!!!
+cfg_calib_out            = [   130   130    130   130   130   130   130   130    130    130    130    130    130    130    130     130     130]; % dB SPL @ MIC!!!
 % Limit for mapping working point and optional dynamic
 cfg_speaker_maxlevel     = [   130   130    130   130   130   130   130   130    130    130    130    130    130    130    130     130     130]; % dB SPL @ MIC!!!
 
@@ -19,8 +18,8 @@ cfg_attention_threshold  = [  53.2  47.3   42.1  36.9  32.7  30.0  28.4  28.9   
 
 % Input from SIAM threshold measurements
 siam_sweep_freqs = [250 500 1000 2000 4000 6000]; % in Hz
-siam_sweep_thresholds_left = [0.0 0.0 0.0 0.0 0.0 0.0 ];
-siam_sweep_thresholds_right = [0.0 0.0 0.0 0.0 0.0 0.0 ];
+siam_sweep_thresholds_left = [0.0 0.0 0.0 0.0 0.0 0.0];
+siam_sweep_thresholds_right = [0.0 0.0 0.0 0.0 0.0 0.0];
 
 expansion_factor = 1;
 

@@ -64,16 +64,16 @@ ht_left = interp1(hp_frequencies, hp_thresholds(1,:), melspec_freqs_left, 'linea
 ht_right = interp1(hp_frequencies, hp_thresholds(2,:), melspec_freqs_right, 'linear', 'extrap');
 
 % Apply absolute hearing threshold
-log_melspec_left = max(log_melspec_left - ht_left.', 0);
-log_melspec_right = max(log_melspec_right - ht_right.', 0);
+log_melspec_left = max(log_melspec_left - ht_left.', 0.5.*randn(size(log_melspec_left)));
+log_melspec_right = max(log_melspec_right - ht_right.', 0.5.*randn(size(log_melspec_right)));
 
 % Apply frequency-dependent level-uncertainty
 ul_mel_left = interp1(hp_frequencies, hp_uncertainties(1,:), melspec_freqs_left, 'linear', 'extrap');
 ul_mel_right = interp1(hp_frequencies, hp_uncertainties(2,:), melspec_freqs_right, 'linear', 'extrap');
 ul_mel_left(isnan(ul_mel_left)) = 0.1;
 ul_mel_right(isnan(ul_mel_right)) = 0.1;
-log_melspec_left = log_melspec_left ./ ul_mel_left.' + randn(size(log_melspec_left));
-log_melspec_right = log_melspec_right ./ ul_mel_right.' + randn(size(log_melspec_right));
+log_melspec_left = log_melspec_left + ul_mel_left.' .* randn(size(log_melspec_left));
+log_melspec_right = log_melspec_right + ul_mel_right.' .* randn(size(log_melspec_right));
 
 % Extract SGBFB features (with adapted parameters to compensate the spectral super-sampling)
 features_left = sgbfb(single(log_melspec_left));

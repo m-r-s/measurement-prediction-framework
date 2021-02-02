@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CFLAGS="-Wall -Ofast"
+CFLAGS="-Wall -Ofast -march=native"
 
 error() {
   echo "$1"

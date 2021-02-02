@@ -242,6 +242,10 @@ fade "${PROJECT}" recognition $RECOGNITIONOPTIONS || error "recognition"
 # Evaluation
 fade "${PROJECT}" evaluation || error "evaluating results"
 
+# Delete training and recognition data
+[ -e "${PROJECT}/training" ] && rm -r "${PROJECT}/training"
+[ -e "${PROJECT}/recognition" ] && rm -r "${PROJECT}/recognition"
+
 case "$SIMMODE" in
   coarse|medium)
   # Evaluate quick simulation to find point of interest
@@ -252,17 +256,22 @@ case "$SIMMODE" in
         awk -F' ' -vt="${QSIM_THRESHOLD}" '{x1=$1;y1=$3/$2;if (y1>t) {if (NR>1) {printf "%.0f",x2+(x2-x1)/(y2-y1)*(t-y2)} exit} x2=x1;y2=y1}')
 
   if [ -z "${POI}" ]; then
-    echo -e "\nERROR: POI not found\n"
-    exit 1
+    echo -e "\nPOI NOT FOUND\n"
+  else
+    echo -e "\nPOI found: ${POI}\n"
+    echo "${POI}" > "${PROJECT}/poi"
   fi
-  echo -e "\nPOI found: ${POI}\n"
-  echo "${POI}" > "${PROJECT}/poi"
   ;;
   precise)
     fade "${PROJECT}" figures || error "figures"
   ;;
 esac
 
+# For big (>1000) simulation experiments delete config and evaluation data as well
+#[ -e "${PROJECT}/config" ] && rm -r "${PROJECT}/config"
+#[ -e "${PROJECT}/evaluation" ] && rm -r "${PROJECT}/evaluation"
+
+# Move the project to disk
 mv "${PROJECT}" "${PROJECTDIR}" || error "figures"
 
 [ -e "${WORKDIR}" ] && rm -rf "${WORKDIR}"

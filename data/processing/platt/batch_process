@@ -20,6 +20,9 @@ octave-cli --quiet --eval "cd('${DIR}');addpath('${PLATT_PATH}');
       if fs ~= 48000
         signal = resample(signal, 48000, fs);
       end
+      if size(signal,2) == 1
+        signal = [signal signal];
+      end
       [left, right] = platt(single(signal(:,1)),single(signal(:,2)));
       audiowrite(targetlist{i}, [left, right], 48000, 'BitsPerSample', 32);
       printf('.');
