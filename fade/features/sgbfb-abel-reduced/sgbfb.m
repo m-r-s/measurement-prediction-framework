@@ -44,7 +44,7 @@ end
 
 % Default maximum filter size (lower center modulation frequencies)
 if nargin < 3 || isempty(size_max)
-  size_max = [3*num_bands 20];
+  size_max = [2.*num_bands 20];
 end
 
 % Default spacing of filters

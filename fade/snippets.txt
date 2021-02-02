@@ -1,0 +1,55 @@
+# Check if all projects contain results
+ls -1  | grep "^run" | while read line; do 
+  if [ -e "$line/figures/table.txt" ]; then
+    RESULT=$(tail -n+2 "$line/figures/table.txt" | tr -s ' ' | cut -d' ' -f2);
+    if [ -z "$RESULT" ]; then 
+      echo "EMPTY $line"
+      echo rm -r "$line"
+    #else
+    #  echo "OK $line"
+    fi
+  else
+    echo "MISSING $line"
+    echo rm -r "$line"
+  fi
+done
+
+# Check if all preps are okay
+ls -1  | grep "^prep" | while read line; do 
+  if [ -e "$line/poi" ]; then 
+    RESULT=$(cat "$line/poi")
+    if [ -z "$RESULT" ]; then 
+      echo "EMPTY $line"
+      echo rm -r "$line"
+    #else
+    #  echo "OK $line"
+    fi
+  else
+    echo "MISSING $line"
+    echo rm -r "$line"
+  fi
+done
+
+# Read out psychometric function
+function fade_psyfun {
+  local TMPPROJECT=$(mktemp -d) || return 1
+  local SRT
+  fade "$1" fork "${TMPPROJECT}/project" &> /dev/null || return 1
+  for T in 0.2 0.25 0.3 0.35 0.4 0.45 0.5 0.55 0.6 0.65 0.7 0.75 0.8 0.85 0.9; do
+    fade "${TMPPROJECT}/project" figures word "${T}" &> /dev/null || return 1
+    SRT=$(tail -n+2 "${TMPPROJECT}/project/figures/table.txt" | tr -s ' '  | cut -d' ' -f 2 | tr -d '\n') || return 1
+    if [ -n "$SRT" ]; then
+      echo -n "$SRT "
+    else
+      echo -n "nan "
+    fi
+  done
+  echo ""
+  [ -d "${TMPPROJECT}" ] && rm -r "${TMPPROJECT}"
+}
+
+ls -1 | grep "^run" | while read line; do
+  echo "$line "$(fade_psyfun "$line")
+done | tee psyfun-data.txt
+
+

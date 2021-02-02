@@ -32,20 +32,79 @@ IMPAIRMENTSTRINGS=('No simulated impairment')
 
 # Define measurement blocks <measurement>,<processing>[,individual]-<measurement-parameters>
 MEASUREMENTS=()
+
 # 1. TRAINING
-MEASUREMENTS[0]='sweep,none-1000,b,train matrix,none-default,quiet,65,b,train'
+MEASUREMENTS[0]='
+sweep,none-1000,l,train
+sweepinnoise,none-1000,l,train
+matrix,none-default,quiet,70,l,train
+matrix,platt1-default,olnoise,70,l,train
+matrix,platt1-default,icra5,70,l,train
+matrix,platt1-default,ists,70,l,train
+loudness,none-olnoise70,l,train
+loudness,none-icra580,l,train
+'
 
-# 2. SWEEPS
-MEASUREMENTS[1]='sweep,none-250,l sweep,none-500,l sweep,none-1000,l sweep,none-2000,l sweep,none-4000,l sweep,none-6000,l sweep,none-250,r sweep,none-500,r sweep,none-1000,r sweep,none-2000,r sweep,none-4000,r sweep,none-6000,r'
+# 2. SWEEP DETECTION
+MEASUREMENTS[1]='
+sweep,none-0250,l
+sweep,none-0500,l
+sweep,none-0750,l
+sweep,none-1000,l
+sweep,none-1500,l
+sweep,none-2000,l
+sweep,none-3000,l
+sweep,none-4000,l
+sweep,none-6000,l
+sweep,none-8000,l
+'
 
-# 3. TONE IN NOISE
-MEASUREMENTS[2]='sweepinnoise,none-500,l sweepinnoise,none-1000,l sweepinnoise,none-2000,l sweepinnoise,none-4000,l sweepinnoise,none-500,r sweepinnoise,none-1000,r sweepinnoise,none-2000,r sweepinnoise,none-4000,r'
+# 3. SWEEP IN NOISE DETECTION
+MEASUREMENTS[2]='
+sweepinnoise,none-0500,l
+sweepinnoise,none-1000,l
+sweepinnoise,none-2000,l
+sweepinnoise,none-4000,l
+'
 
 # 4. MATRIX
-MEASUREMENTS[3]='matrix,none-default,quiet,0,b matrix,none-default,whitenoise,65,b matrix,openMHA-default,quiet,65,b matrix,openMHA-default,whitenoise,65,b'
+MEASUREMENTS[3]='
+matrix,none-default,quiet,0,l
+matrix,none-default,olnoise,70,l
+matrix,none-default,olnoise,80,l
+matrix,platt1-default,olnoise,70,l
+matrix,platt4-default,olnoise,70,l
+matrix,platt8-default,olnoise,70,l
+matrix,none-default,icra5,70,l
+matrix,none-default,icra5,80,l
+matrix,platt1-default,icra5,70,l
+matrix,platt4-default,icra5,70,l
+matrix,platt8-default,icra5,70,l
+matrix,none-default,ists,70,l
+matrix,none-default,ists,80,l
+matrix,platt1-default,ists,70,l
+matrix,platt4-default,ists,70,l
+matrix,platt8-default,ists,70,l
+'
 
-MEASUREMENTSTRINGS=('Training' 'Tone detection' 'Tone detection in noise' 'Matrix sentence tests')
-MEASUREMENTSEQUENCES=('unchanged' 'random' 'random' 'random')
+# 5. LOUDNESS
+MEASUREMENTS[4]='
+loudness,none-default,l
+loudness,platt1-default,l
+loudness,platt4-default,l
+loudness,platt8-default,l
+'
+
+# 5. QUALITY
+MEASUREMENTS[5]='
+loudness,none-default,l
+loudness,platt1-default,l
+loudness,platt4-default,l
+loudness,platt8-default,l
+'
+
+MEASUREMENTSTRINGS=('Training' 'Tone detection' 'Tone detection in noise' 'Matrix sentence tests' 'Loudness scaling' 'Quality')
+MEASUREMENTSEQUENCES=('unchanged' 'unchanged' 'unchanged' 'random' 'random' 'random')
 
 # Say hello
 echo ""
@@ -153,6 +212,12 @@ start_measurement() {
       echo "Start loudness measurements..."
       octave-cli --quiet --eval "addpath('${MADDPATH}');addpath('${MSTIMULUSPATH}');measure_loudness('${TARGETFILE}','${PARAMETERS}','${PROCESSINGDEVICE}')" \
         2>> "$OCTAVELOG" | tee -a "$USERLOG" || error "loudness measurement failed"
+    ;;
+    quality)
+      echo "Start quality measurements..."
+      #octave-cli --quiet --eval "addpath('${MADDPATH}');addpath('${MSTIMULUSPATH}');measure_quality('${TARGETFILE}','${PARAMETERS}','${PROCESSINGDEVICE}')" \
+      #  2>> "$OCTAVELOG" | tee -a "$USERLOG" || error "quality measurement failed"
+      echo "not implemented!"
     ;;
     *)
     echo "Measurement '${MEASUREMENT}' not defined"

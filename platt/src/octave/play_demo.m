@@ -71,6 +71,10 @@ phase = cumsum(logspace(log10(phase_diff_start), log10(phase_diff_stop), round(f
 signal_sweep2 = 10.^(linspace(amplitude_start,amplitude_stop,round(fs.*duration))./20).*sin(phase);
 signal_in = signal_sweep1 + signal_sweep2;
 
+%speech = audioread('/home/marc/measurement-prediction-framework/data/matrix/speech/default/00456.wav');
+speech = audioread('../../../data/matrix/speech/default/00456.wav');
+%noise = audioread('/home/marc/measurement-prediction-framework/data/matrix/maskers/icra5.wav');
+%signal_in = speech + noise(1:length(speech));
 
 % IMPORTANT! Signal must be column vector!
 signal_in = signal_in(:);
@@ -304,14 +308,6 @@ printf('The C version needs %.2fs to process %.2fs of a stereo real time signal.
 printf('...instead of %.2fs to process %.2fs of a mono real time signal\n',t1,duration);
 
 
-%addpath /home/marc/fade/fade.d/features.d/standalone
-%b = (log_mel_spectrogram(signal_out,fs));
-%a = (log_mel_spectrogram(threshold_audiofile(1:length(signal_out),1),fs));
-%imagesc((a<b).*a);
-%sum((a<b)(:))
-%break
-
-
 %% FIGURES FIGURES FIGURES
 % Now lets plot some figures
 
@@ -540,7 +536,8 @@ ylabel('Sound pressure');
 title('Output waveform');
 
 % Analysis of input-output at a certain frames 
-t_inspect = [500];
+% t_inspect = [500];
+t_inspect = [100];
 
 legend_string = { ...
   'Normal hearing threshold' ...

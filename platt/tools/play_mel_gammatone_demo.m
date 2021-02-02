@@ -2,15 +2,12 @@ close all
 clear
 clc
 
+graphics_toolkit qt;
 
 % Impulse
 fs = 48000;
 impulse = [0; 0; 0; 0; 1; zeros(fs,1)];
 signal_in = impulse;
-
-signal_in = sin(2*pi*1038.8*linspace(0,fs-1,fs)./fs).';
-
-
 
 [signal_filtered, centers, filters, bandwidths] = mel_gammatone_iir(signal_in, fs);
 

@@ -268,11 +268,11 @@ case "$SIMMODE" in
 esac
 
 # For big (>1000) simulation experiments delete config and evaluation data as well
-#[ -e "${PROJECT}/config" ] && rm -r "${PROJECT}/config"
-#[ -e "${PROJECT}/evaluation" ] && rm -r "${PROJECT}/evaluation"
+[ -e "${PROJECT}/config" ] && rm -r "${PROJECT}/config"
+[ -e "${PROJECT}/evaluation" ] && rm -r "${PROJECT}/evaluation"
 
-# Move the project to disk
-mv "${PROJECT}" "${PROJECTDIR}" || error "figures"
+# Save the project to disk
+mv "${PROJECT}" "${PROJECTDIR}" || error "saving project"
 
 [ -e "${WORKDIR}" ] && rm -rf "${WORKDIR}"
 

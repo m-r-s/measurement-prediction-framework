@@ -2,7 +2,7 @@ function features = feature_extraction(signal, fs, id)
 % usage: features = feature_extraction(signal, fs, id)
 %   signal        waveform signal
 %   fs            sample rate in Hz
-%   id            listener string that is then handled by load_hearingprofile.m
+%   id            hearing profile
 %
 % - Feature extraction to take binaural hearing thresholds into account -
 %
@@ -18,11 +18,7 @@ function features = feature_extraction(signal, fs, id)
 %
 
 if nargin < 3 || isempty(id)
-  id = 0;
-end
-
-if nargin < 4 || isempty(uncertainty)
-  uncertainty = 1;
+  id = 'P-0-1';
 end
 
 persistent config;
@@ -32,7 +28,15 @@ configid = sprintf('c%.0f', fs, id);
 
 if isempty(config) || ~isfield(config, configid)
   % Load hearing profile
-  [hp_frequencies, hp_thresholds, hp_uncertainties] = load_hearingprofile(id);
+  hp = strsplit(id, '-');
+  f_cutoff = str2num(hp{2});
+  ul_profile = str2num(hp{3});
+  [~, hp_frequencies] = log_mel_spectrogram(zeros(100,1), fs);
+  ht = hl2spl(hp_frequencies,zeros(size(hp_frequencies)));
+  ht(hp_frequencies>f_cutoff) = 1000;
+  ul = ul_profile.*ones(size(hp_frequencies));
+  hp_thresholds = [ht; ht];
+  hp_uncertainties = [ul; ul];
   config.(configid).hp_frequencies = hp_frequencies;
   config.(configid).hp_thresholds = hp_thresholds;
   config.(configid).hp_uncertainties = hp_uncertainties;
@@ -60,18 +64,16 @@ signal_right = signal(:,2);
 [log_melspec_right, melspec_freqs_right] = log_mel_spectrogram(signal_right, fs);
 
 % Get left and right hearing thresholds
-ht_left = interp1(hp_frequencies, hp_thresholds(1,:), melspec_freqs_left, 'linear', 'extrap');
-ht_right = interp1(hp_frequencies, hp_thresholds(2,:), melspec_freqs_right, 'linear', 'extrap');
+ht_left = hp_thresholds(1,:);
+ht_right = hp_thresholds(2,:);
 
 % Apply absolute hearing threshold
 log_melspec_left = max(log_melspec_left - ht_left.', 0.5.*randn(size(log_melspec_left)));
 log_melspec_right = max(log_melspec_right - ht_right.', 0.5.*randn(size(log_melspec_right)));
 
 % Apply frequency-dependent level-uncertainty
-ul_mel_left = interp1(hp_frequencies, hp_uncertainties(1,:), melspec_freqs_left, 'linear', 'extrap');
-ul_mel_right = interp1(hp_frequencies, hp_uncertainties(2,:), melspec_freqs_right, 'linear', 'extrap');
-ul_mel_left(isnan(ul_mel_left)) = 0.1;
-ul_mel_right(isnan(ul_mel_right)) = 0.1;
+ul_mel_left = hp_uncertainties(1,:);
+ul_mel_right = hp_uncertainties(2,:);
 log_melspec_left = log_melspec_left + ul_mel_left.' .* randn(size(log_melspec_left));
 log_melspec_right = log_melspec_right + ul_mel_right.' .* randn(size(log_melspec_right));
 

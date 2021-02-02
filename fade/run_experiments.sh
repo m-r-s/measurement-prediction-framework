@@ -8,15 +8,24 @@ export PLATT_PATH="${DIR}/platt-bin"
 DATAPREF="${DIR}/simulation-data/"
 mkdir -p "$DATAPREF"
 
-FEATURES='sgbfb-kain'
+FEATURES='sgbfb-abel'
 
 IMPAIRMENTS=('none')
 
-MEASUREMENTS=('sweep,none-1000,l' 'sweep,openMHA-1000,l' 'sweepinnoise,none-1000,l' 'sweepinnoise,openMHA-1000,l' 'matrix,none-default,quiet,0,b' 'matrix,openMHA-default,quiet,0,b' 'matrix,none-default,whitenoise,65,b' 'matrix,openMHA-default,whitenoise,65,b')
+MEASUREMENTS=(
+#  sweep,none-{0250,0500,0750,1000,1500,2000,3000,4000,6000,8000},b
+#  sweepinnoise,none-{0500,1000,2000,4000},b
+  matrix,none-default,{olnoise,icra5},{0,10,20,30,40,50,60,70,80,90,100},b
+  matrix,platt{2,4,6,8}-default,{olnoise,icra5},{0,10,20,30,40,50,60,70,80,90,100},b
+)
 
 INDIVIDUALS=(
-  bisgaard-0-1
+  P-{8000,4000,2000,1000}-{1,7,14,21} # 16 profiles
 )
+
+## Uncomment to run only one simulation to test the setup 
+# MEASUREMENTS=( matrix,platt4-default,icra5,70,b )
+# INDIVIDUALS=( P-4000-14 )
 
 NUM_SIMULATIONS=$[${#INDIVIDUALS[@]} * ${#MEASUREMENTS[@]} * ${#IMPAIRMENTS[@]}]
 COUNT=0
@@ -105,7 +114,7 @@ for ((I=0;$I<${#INDIVIDUALS[@]};I++)); do
           SIMRANGE="[-15:3:6]+${POI}"
         ;;
         matrix)
-          SIMRANGE="[-15:3:9]+${POI}"
+          SIMRANGE="[-12:2:10]+${POI}"
         ;;
       esac
 
