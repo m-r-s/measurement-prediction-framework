@@ -25,35 +25,30 @@ plotrange = [5 95];
 maskers = {'olnoise' 'icra5'};
 maskers_strings = {'OLNOISE' 'ICRA5-250'};
 
-%% frequency range
 %profiles = {'P-8000-1' 'none';
 %            'P-4000-1' 'none';
 %            'P-2000-1' 'none';
 %            'P-1000-1' 'none';
 %            };
 
-%% level uncertainty
 %profiles = {'P-8000-1' 'none';
 %            'P-8000-7' 'none';
 %            'P-8000-14' 'none';
 %            'P-8000-21' 'none';
 %            };
 
-%% level uncertainty with frequency range limited to 1000 Hz
 %profiles = {'P-1000-1' 'none';
 %            'P-1000-7' 'none';
 %            'P-1000-14' 'none';
 %            'P-1000-21' 'none';
 %            };
 
-%% limited frequency range with increased level uncertainty
 %profiles = {'P-8000-1' 'none';
 %            'P-4000-7' 'none';
 %            'P-2000-14' 'none';
 %            'P-1000-21' 'none';
 %            };
 
-%% limited frequency range with increased level uncertainty
 %profiles = {'P-4000-7' 'none';
 %            'P-4000-7' 'platt2';
 %            'P-4000-7' 'platt4';
@@ -61,7 +56,6 @@ maskers_strings = {'OLNOISE' 'ICRA5-250'};
 %            'P-8000-1' 'none';
 %            }
 
-%% limited frequency range with increased level uncertainty
 %profiles = {'P-2000-14' 'none';
 %            'P-2000-14' 'platt2';
 %            'P-2000-14' 'platt4';
@@ -69,7 +63,6 @@ maskers_strings = {'OLNOISE' 'ICRA5-250'};
 %            'P-8000-1' 'none';
 %            }
 
-% limited frequency range with increased level uncertainty
 profiles = {'P-1000-21' 'none';
             'P-1000-21' 'platt2';
             'P-1000-21' 'platt4';
