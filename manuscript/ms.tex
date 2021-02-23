@@ -490,6 +490,22 @@ Static dynamic range compression only preserves the spectral modulation within e
 %
 Also, fewer frequency channels reduce the need for sharp filters which would require long integration time constants and introduce additional latency.
 
+\cite{bustamante1987} proposed to compress the first two principle components (PC1 and PC2) of the short-term speech spectrum, which were roughly representative of overall level and spectral tilt.
+%
+With this approach, the frequency bands were not processed independently anymore, and the finer spectral structure was always preserved.
+%
+Their analysis indicated that the highest intelligibility was obtained when audibility was improved and the relative spectral shapes of different speech sounds were preserved \citep{bustamante1987}.
+%
+In their concluding section, they recommended to investigate the enhancement of spectral differences while compressing level variations.
+%
+\cite{levitt1991} proposed an approach which decomposes and manipulates the short-term spectrum using a set of orthogonal polynomial functions with the aim to preserve important speech cues.
+%
+Referring to the study of \cite{bustamante1987}, \cite{levitt1991} wrote: \emph{\enquote{Both studies showed that compression of the lowest order component (factor 1 in the principal-components method and the constant term in the orthogonal polynomial method, respectively) had by far the largest effect, and that compression of higher order components had little effect, if any.}}
+%
+The common idea behind these two studies was to linearly map and manipulate the spectral dimension of a suitable spectro-temporal representation with the aim of separating important from less important speech signal dynamic.
+%
+However, both studies considered only clean speech signals, and hence did not consider the relevant portions of speech signal for their recognition in noise.
+
 That the signal dynamic can be described as the difference of frequency-dependent short-term effective amplitudes, e.g., across time (temporal dynamic), across frequency (spectral dynamic), or both (spectro-temporal dynamic), raises the question which representation is most suitable to manipulate it.
 %
 ASR systems are \emph{the} technical solution to decode speech signals and hence provide a model for speech recognition.
@@ -1634,6 +1650,11 @@ The most important findings of this work can be summarized as follows:
 	\newblock Standard audiograms for the IEC 60118-15 measurement procedure.
 	\newblock {\em Trends in amplification}, 14(2):113--120, \url{https://doi.org/10.1177%2F1084713810379609}
 
+	\bibitem[Bustamante and Braida, 1987]{bustamante1987}
+	Bustamante, D.~K. and Braida, L.~D. (1987)
+	\newblock Principal-component amplitude compression for the hearing impaired.
+	\newblock {\em The Journal of the Acoustical Society of America}, 82(4):1227--1242, \url{https://doi.org/10.1121/1.395259}
+
     \bibitem[Dreschler, 1992]{dreschler1992}
 	Dreschler, W.~A. (1992)
 	\newblock Fitting multichannel-compression hearing aids.
@@ -1688,6 +1709,11 @@ The most important findings of this work can be summarized as follows:
 	Kollmeier, B., Schädler, M.~R., Warzybok, A., Meyer, B.~T., and Brand, T. (2016)
 	\newblock Sentence recognition prediction for hearing-impaired listeners in	stationary and fluctuation noise with fade: Empowering the attenuation and	distortion concept by Plomp with a quantitative processing model.
 	\newblock {\em Trends in Hearing}, 20, \url{https://doi.org/10.1177%2F2331216516655795}
+
+	\bibitem[Levitt and Neuman, 1991]{levitt1991}
+	Levitt, H. and Neuman, A.~C. (1991)
+	\newblock Evaluation of orthogonal polynomial compression.
+	\newblock {\em The Journal of the Acoustical Society of America}, 90(1):241--252, \url{https://doi.org/10.1121/1.401294}
 
 	\bibitem[Moore et~al., 1999]{moore1999}
 	Moore, B.~C.~J., Peters, R.~W., and Stone, M.~A. (1999)
