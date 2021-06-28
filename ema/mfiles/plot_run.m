@@ -2,7 +2,8 @@ function plot_run(resultfile)
   assert(exist(resultfile,'file'));
   run(resultfile);
 
-  graphics_toolkit gnuplot;
+  figure('Visible','off'); close;
+  graphics_toolkit('gnuplot');
   figh = figure('Position',[0 0 400 400],'Visible','off');
   set(gcf,'PaperUnits','inches','PaperPosition',[0 0 4 4].*1.4);
   

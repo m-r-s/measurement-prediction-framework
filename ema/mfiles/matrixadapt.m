@@ -15,7 +15,6 @@ lastvalue = [];
 direction = [];
 count = 0;
 
-
 threshold = [];
 values = [];
 reversals = [];
@@ -37,11 +36,16 @@ for il=1:20
 
   % Present stimulus
   presentation = il;
-  offset = presentationhandle(presentation, value);
+  [status, offset] = presentationhandle(presentation, value);
   presentations(count) = presentation;
   values(count) = value;
   offsets(count) = offset;
-
+  
+  if status > 0
+    threshold = inf;
+    return;
+  end
+  
   if selfservice
     input(sprintf('%3i| press enter to show results... ', count));
   end

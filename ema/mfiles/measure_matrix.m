@@ -181,7 +181,7 @@ function measure_matrix(targetfile, parameters, device)
   end
 end
 
-function noise_offset = presentstimulus(presentation, value, speech, noise, fs, playdev)
+function [status, noise_offset] = presentstimulus(presentation, value, speech, noise, fs, playdev)
   padd_duration = 0.500; % s
   flank_duration = 0.200; % s
 
@@ -189,6 +189,7 @@ function noise_offset = presentstimulus(presentation, value, speech, noise, fs, 
   persistent cache;
   if nargin > 2
     cache.count = 0;
+    cache.warnings = 0;
     cache.id = rand(1);
     cache.speech = speech;
     cache.noise = noise;
@@ -221,10 +222,22 @@ function noise_offset = presentstimulus(presentation, value, speech, noise, fs, 
   speechinnoise = speech_tmp .* 10.^(value./20) + noise_tmp;
   stimulus = flank(speechinnoise, flank_samples);
   
-  % Playback with 24bit samples on "playdev" (depends on capabilities of device, choose highest possible)
-  stimulus = [stimulus; zeros(round(0.1.*fs),2)];
-  cache.stimulusplayer = audioplayer(stimulus, fs, 24, playdev);
-  play(cache.stimulusplayer);
+  if ~checklevels(stimulus)
+    cache.warnings = cache.warnings + 1;
+    printf('Warning! Level check on last stimulus failed (%i/3)!\n', cache.warnings);
+  end
+  
+  if cache.warnings < 3
+    % Playback with 24bit samples on "playdev" (depends on capabilities of device, choose highest possible)
+    stimulus = [stimulus; zeros(round(0.1.*fs),2)];
+    cache.stimulusplayer = audioplayer(stimulus, fs, 24, playdev);
+    play(cache.stimulusplayer);
+    status = 0;
+  else
+    printf('Warning threshold exceeded. Abort measurement!\n');
+    status = 1;
+  end
+  
 end
 
 function answer = getanswer(count, explanationidx)
@@ -272,3 +285,4 @@ function answer = getanswer(count, explanationidx)
   end
   answers(count) = answer;
 end
+

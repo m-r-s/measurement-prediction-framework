@@ -271,8 +271,8 @@ esac
 #[ -e "${PROJECT}/config" ] && rm -r "${PROJECT}/config"
 #[ -e "${PROJECT}/evaluation" ] && rm -r "${PROJECT}/evaluation"
 
-# Move the project to disk
-mv "${PROJECT}" "${PROJECTDIR}" || error "figures"
+# Save the project to disk
+mv "${PROJECT}" "${PROJECTDIR}" || error "saving project"
 
 [ -e "${WORKDIR}" ] && rm -rf "${WORKDIR}"
 

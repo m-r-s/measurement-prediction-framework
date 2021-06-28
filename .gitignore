@@ -1,4 +1,7 @@
 fade/simulation-data*
+platt/tools/calibrationstimuli/*
 *.mex
 *.bin
+*.pid
+*.ports
 

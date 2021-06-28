@@ -41,10 +41,15 @@ while sum(abs(reversals))<minreversals || sum(presentations(measures==1))<minmea
   else
     presentation = round(rand(1));
   end
-  offset = presentationhandle(presentation, value);
+  [status, offset] = presentationhandle(presentation, value);
   presentations(count) = presentation;
   values(count) = value;
   offsets(count) = offset;
+  
+  if status > 0
+    threshold = inf;
+    return;
+  end
   
   % Get answer
   answer = answerhandle(count, presentation, value);

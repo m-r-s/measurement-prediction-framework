@@ -70,6 +70,13 @@ range2 = int32(selectmain(ir2,level2)-1);
 
 limit = single(10.^((hardclip-130)./20));
 
+
+printf('ir1 = [');
+printf('%.15f ', ir1(range1(1)+1:range1(2)+1));
+printf('];\n');
+printf('ir2 = [');
+printf('%.15f ', ir2(range2(1)+1:range2(2)+1));
+printf('];\n');
 % Write coefficients and ranges to files
 fp = fopen('../src/configuration/impulseresponse1.bin','wb');
 fwrite(fp,ir1,'single');

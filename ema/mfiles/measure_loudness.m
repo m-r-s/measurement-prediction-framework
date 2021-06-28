@@ -66,7 +66,7 @@ function measure_loudness(targetfile, parameters, device)
  
   % Random sample order for measurement
   [~, sampleorder] = sort(rand(numel(samples),1));
-  samplefiles(sampleorder)
+  
   % Start loudness measurement
   [presentations, answers] = presentationresponse(@presentstimulus, @getanswer, sampleorder);
 

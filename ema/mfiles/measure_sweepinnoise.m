@@ -36,8 +36,6 @@ function measure_sweepinnoise(targetfile, parameters, device)
           validanswer = 1;
         case {'a'}
           validanswer = 2;
-        otherwise
-          disp('Invalid option. Please choose 1, 0 or a.')
       end
     end
     % Evaluate answer
@@ -105,13 +103,14 @@ function measure_sweepinnoise(targetfile, parameters, device)
   end
 end
 
-function offset = presentstimulus(presentation, value, parameters, playdev)
+function [status, offset] = presentstimulus(presentation, value, parameters, playdev)
   offset = nan;
 
   % Use persistent variables for configuration
   persistent cache;
   if nargin > 2
     cache.count = 0;
+    cache.warnings = 0;
     cache.id = rand(1);
     cache.parameters = parameters;
     cache.playdev = playdev;
@@ -132,10 +131,22 @@ function offset = presentstimulus(presentation, value, parameters, playdev)
   % Generate the sweep using the sweep stimulus function
   [stimulus, fs] = gensweepinnoise(presentation, value, parameters);
 
-  % Playback with 24bit samples on "playdev" (depends on capabilities of device, choose highest possible)
-  stimulus = [stimulus; zeros(round(0.1.*fs),2)];
-  cache.stimulusplayer = audioplayer(stimulus, fs, 24, playdev);
-  play(cache.stimulusplayer);
+  if ~checklevels(stimulus)
+    cache.warnings = cache.warnings + 1;
+    printf('Warning! Level check on last stimulus failed (%i/3)!\n', cache.warnings);
+  end
+  
+  if cache.warnings < 3
+    % Playback with 24bit samples on "playdev" (depends on capabilities of device, choose highest possible)
+    stimulus = [stimulus; zeros(round(0.1.*fs),2)];
+    cache.stimulusplayer = audioplayer(stimulus, fs, 24, playdev);
+    play(cache.stimulusplayer);
+    status = 0;
+  else
+    printf('Warning threshold exceeded. Abort measurement!\n');
+    status = 1;
+  end
+  
 end
 
 function answer = getanswer(count)
@@ -147,8 +158,6 @@ function answer = getanswer(count)
         validanswer = 1;
       case {'a'}
         validanswer = 2;
-      otherwise
-        disp('Invalid option. Please choose 1, 0 or a.')
     end
   end
   
@@ -160,3 +169,4 @@ function answer = getanswer(count)
       exit
   end
 end
+
