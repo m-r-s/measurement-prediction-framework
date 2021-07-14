@@ -28,7 +28,10 @@ function measure_sweep(targetfile, parameters, device)
   answer = 0;
   while answer == 0
     validanswer = 0;
-    presentstimulus(1, startvalue_corrected);
+    status = presentstimulus(1, startvalue_corrected);
+    if status > 0
+      break
+    end   
     while validanswer == 0
       answer = input(sprintf('%3i|  1) present  0) absent  a) abort  -->  ',0),'s');
       switch tolower(answer)
@@ -49,11 +52,21 @@ function measure_sweep(targetfile, parameters, device)
       startvalue_corrected = startvalue_corrected + steps(1);
     end
   end
-
-  % Start single interval adaptive measurement
-  [threshold, values, reversals, measures, presentations, answers, adjustments] = ...
-    siam(@presentstimulus, @getanswer, target, minreversals, discardreversals, minmeasures, startvalue_corrected, steps, feedback);
-
+  
+  if status > 0 
+    threshold = inf;
+    values = [];
+    reversalsv = [];
+    measures = [];
+    presentations = [];
+    answers = [];
+    adjustments = [];
+  else
+    % Start single interval adaptive measurement
+    [threshold, values, reversals, measures, presentations, answers, adjustments] = ...
+      siam(@presentstimulus, @getanswer, target, minreversals, discardreversals, minmeasures, startvalue_corrected, steps, feedback);
+  end
+  
   % Rename target file for incomplete measurements
   if isempty(threshold)
     targetfile = [targetfile, '.incomplete'];

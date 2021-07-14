@@ -10,7 +10,7 @@ DIR=$(cd "$( dirname "$0" )" && pwd)
 SCN=$(basename "$0")
 
 # Set the version string
-export EMA_VERSION=3.2.0
+export EMA_VERSION=3.2.1
 
 # Audio setup configuration
 SOUNDDEVICE=USB
